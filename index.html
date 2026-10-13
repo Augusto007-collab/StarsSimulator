@@ -1,1530 +1,956 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stars Simulator - Futebol & Tática</title>
-    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Rajdhani:wght@600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #080b12;
-            --bg-card: #0f1624;
-            --bg-glass: rgba(15, 22, 36, 0.85);
-            --neon-green: #00ff87;
-            --neon-blue: #00f0ff;
-            --vip-gold: #ffd700;
-            --danger-red: #ff3366;
-            --text-main: #f0f4f8;
-            --text-muted: #8a99ad;
-            --border-glow: rgba(0, 255, 135, 0.25);
-            --font-title: 'Teko', sans-serif;
-            --font-sub: 'Rajdhani', sans-serif;
-            --font-body: 'Inter', sans-serif;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stars Simulator - EA Sports FC Draft & Match Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            teko: ['Teko', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            ea: {
+              dark: '#0a0d14',
+              card: '#121824',
+              gold: '#f3c649',
+              green: '#00ff87',
+              pink: '#ff0055',
+              blue: '#00d2ff',
+              gray: '#1e2838'
+            }
+          }
         }
+      }
+    }
+  </script>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: var(--font-body);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(0, 255, 135, 0.08) 0%, transparent 40%);
-        }
-
-        /* HEADER & NAVIGATION */
-        header {
-            background: rgba(8, 11, 18, 0.95);
-            backdrop-filter: blur(12px);
-            border-bottom: 2px solid var(--neon-green);
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 20px rgba(0,255,135,0.2);
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-
-        .logo-title {
-            font-family: var(--font-title);
-            font-size: 2.2rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            background: linear-gradient(135deg, #fff 0%, var(--neon-green) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-transform: uppercase;
-        }
-
-        nav {
-            display: flex;
-            gap: 0.5rem;
-            background: rgba(255,255,255,0.03);
-            padding: 0.3rem;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .nav-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 0.6rem 1.2rem;
-            font-family: var(--font-sub);
-            font-size: 1.1rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            text-transform: uppercase;
-        }
-
-        .nav-btn:hover {
-            color: #fff;
-            background: rgba(255,255,255,0.05);
-        }
-
-        .nav-btn.active {
-            background: linear-gradient(135deg, var(--neon-green), #00b359);
-            color: #000;
-            box-shadow: 0 0 15px rgba(0,255,135,0.4);
-        }
-
-        .user-badge {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            background: rgba(255,255,255,0.05);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        /* MAIN CONTAINER */
-        main {
-            flex: 1;
-            max-width: 1400px;
-            width: 100%;
-            margin: 1.5rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* VITRINE / HERO */
-        .hero-banner {
-            background: linear-gradient(135deg, rgba(15,22,36,0.95), rgba(8,11,18,0.98)), url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80') center/cover;
-            border-radius: 20px;
-            padding: 3.5rem 2.5rem;
-            border: 1px solid var(--border-glow);
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-
-        .hero-title {
-            font-family: var(--font-title);
-            font-size: 3.8rem;
-            line-height: 1;
-            text-transform: uppercase;
-            color: #fff;
-            margin-bottom: 0.8rem;
-        }
-
-        .hero-sub {
-            color: var(--text-muted);
-            font-size: 1.2rem;
-            max-width: 650px;
-            margin-bottom: 2rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.2rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1.2rem;
-        }
-
-        .stat-icon { font-size: 2.5rem; }
-        .stat-val { font-family: var(--font-title); font-size: 2.5rem; color: var(--neon-green); line-height: 1; }
-        .stat-lbl { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; }
-
-        /* MATCH ENGINE & REALISTIC 2D PITCH */
-        .match-container {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 1.5rem;
-        }
-
-        .pitch-card {
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255,255,255,0.08);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .scoreboard {
-            background: rgba(0,0,0,0.5);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .team-score-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            width: 38%;
-        }
-
-        .team-score-info.away { justify-content: flex-end; }
-
-        .team-logo-small {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
-        }
-
-        .score-display {
-            font-family: var(--font-title);
-            font-size: 3.5rem;
-            color: var(--neon-green);
-            letter-spacing: 4px;
-        }
-
-        /* CAMPO 2D REALISTA */
-        .pitch-2d {
-            height: 460px;
-            background: linear-gradient(135deg, #1b4d2e 0%, #11331e 100%);
-            border-radius: 16px;
-            border: 3px solid rgba(255,255,255,0.3);
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 60px rgba(0,0,0,0.8);
-        }
-
-        .grass-stripes {
-            position: absolute;
-            inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 40px,
-                rgba(0,0,0,0.12) 40px,
-                rgba(0,0,0,0.12) 80px
-            );
-            pointer-events: none;
-        }
-
-        .pitch-lines-box {
-            position: absolute;
-            inset: 20px;
-            border: 2px solid rgba(255,255,255,0.5);
-            border-radius: 4px;
-            pointer-events: none;
-        }
-
-        .center-line {
-            position: absolute;
-            top: 0; bottom: 0; left: 50%;
-            width: 2px;
-            background: rgba(255,255,255,0.5);
-        }
-
-        .center-circle {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 110px; height: 110px;
-            border: 2px solid rgba(255,255,255,0.5);
-            border-radius: 50%;
-        }
-
-        .penalty-area-left {
-            position: absolute;
-            top: 25%; left: 0;
-            width: 90px; height: 50%;
-            border: 2px solid rgba(255,255,255,0.5);
-            border-left: none;
-        }
-
-        .penalty-area-right {
-            position: absolute;
-            top: 25%; right: 0;
-            width: 90px; height: 50%;
-            border: 2px solid rgba(255,255,255,0.5);
-            border-right: none;
-        }
-
-        .goal-left {
-            position: absolute;
-            top: 40%; left: -10px;
-            width: 10px; height: 20%;
-            border: 2px solid var(--neon-blue);
-            background: rgba(0,240,255,0.25);
-        }
-
-        .goal-right {
-            position: absolute;
-            top: 40%; right: -10px;
-            width: 10px; height: 20%;
-            border: 2px solid var(--neon-blue);
-            background: rgba(0,240,255,0.25);
-        }
-
-        .ball {
-            width: 16px; height: 16px;
-            background: #fff;
-            border-radius: 50%;
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 12px #fff, 0 0 20px var(--neon-green);
-            transition: all 0.4s ease-out;
-            z-index: 20;
-        }
-
-        .attack-indicator {
-            position: absolute;
-            top: 15px; left: 25px;
-            padding: 0.4rem 1rem;
-            background: rgba(0,240,255,0.2);
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            z-index: 30;
-            transition: all 0.3s ease;
-        }
-
-        /* ANIMAÇÃO DE GOL OVERLAY */
-        .goal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 9999;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.2s ease;
-        }
-
-        .goal-overlay.active { display: flex; }
-
-        .goal-card-anim {
-            text-align: center;
-            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .goal-title-anim {
-            font-family: var(--font-title);
-            font-size: 6.5rem;
-            color: var(--neon-green);
-            text-shadow: 0 0 35px var(--neon-green);
-            letter-spacing: 4px;
-            margin-bottom: 0.5rem;
-        }
-
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            60% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); }
-        }
-
-        /* TICKER / LOGS */
-        .ticker-box {
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 1.2rem;
-            border: 1px solid rgba(255,255,255,0.08);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            height: 100%;
-        }
-
-        .ticker-list {
-            flex: 1;
-            overflow-y: auto;
-            max-height: 480px;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-        }
-
-        .ticker-item {
-            background: rgba(255,255,255,0.03);
-            border-left: 3px solid var(--neon-green);
-            padding: 0.7rem 1rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-
-        /* FUT CARDS (COM CLUBE EXIBIDO) */
-        .fut-card {
-            width: 150px; height: 220px;
-            background: linear-gradient(135deg, #2b1f0e, #574119, #1c1306);
-            border: 2px solid var(--vip-gold);
-            border-radius: 12px;
-            position: relative;
-            padding: 0.8rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .fut-card:hover { transform: translateY(-5px) scale(1.03); }
-        .fut-ovr { position: absolute; top: 8px; left: 10px; font-family: var(--font-title); font-size: 1.8rem; color: var(--vip-gold); line-height: 1; }
-        .fut-pos { position: absolute; top: 32px; left: 10px; font-family: var(--font-sub); font-size: 0.85rem; font-weight: 700; color: #fff; }
-        .fut-club-logo { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        .fut-img { width: 90px; height: 90px; object-fit: contain; margin-top: 15px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
-        .fut-name { font-family: var(--font-sub); font-size: 0.95rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-top: 4px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-        .fut-club-name { font-size: 0.7rem; color: var(--vip-gold); text-transform: uppercase; text-align: center; margin-top: 2px; font-weight: 700; }
-
-        .fut-card-actions {
-            position: absolute;
-            bottom: 6px;
-            display: flex;
-            gap: 4px;
-        }
-
-        /* PRANCHETA TÁTICA COM RESTRIÇÃO DE GOLEIRO */
-        .tactical-board-editor {
-            height: 380px;
-            background: linear-gradient(135deg, #1b4d2e 0%, #11331e 100%);
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            position: relative;
-            margin-top: 1rem;
-            overflow: hidden;
-        }
-
-        .tactic-node-slot {
-            position: absolute;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.85);
-            border: 2px solid var(--neon-green);
-            padding: 4px;
-            border-radius: 8px;
-            text-align: center;
-            width: 100px;
-        }
-
-        .tactic-node-slot label {
-            font-size: 0.65rem;
-            color: var(--neon-green);
-            font-weight: 700;
-            display: block;
-            text-transform: uppercase;
-        }
-
-        .tactic-node-slot select {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 4px;
-            font-size: 0.75rem;
-            width: 100%;
-            outline: none;
-        }
-
-        /* DRAFT PITCH */
-        .draft-pitch-container {
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .tactical-board {
-            height: 400px;
-            background: linear-gradient(135deg, #1b4d2e 0%, #11331e 100%);
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .tactical-node {
-            width: 44px; height: 44px;
-            background: rgba(0,0,0,0.8);
-            border: 2px solid var(--neon-green);
-            color: #fff;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.7rem;
-            position: absolute;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
-        }
-
-        /* BOTÕES E FORMULÁRIOS */
-        .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
-        .form-group label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600; }
-        .form-control { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.7rem 1rem; color: #fff; font-size: 1rem; outline: none; }
-        .form-control:focus { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,135,0.2); }
-
-        .btn {
-            background: linear-gradient(135deg, var(--neon-green), #00b359);
-            color: #000; border: none; padding: 0.8rem 1.5rem;
-            font-family: var(--font-sub); font-size: 1.1rem; font-weight: 700;
-            border-radius: 8px; cursor: pointer; text-transform: uppercase;
-            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-        }
-        .btn:hover { filter: brightness(1.1); box-shadow: 0 0 15px rgba(0,255,135,0.4); }
-        .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
-        .btn-danger { background: var(--danger-red); color: #fff; }
-
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-            z-index: 2000; display: none; justify-content: center; align-items: center; padding: 1rem;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-card {
-            background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 20px;
-            width: 100%; max-width: 550px; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-
-        .file-upload-btn {
-            background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3);
-            padding: 0.6rem; border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.85rem; color: var(--text-muted); width: 100%; display: block;
-        }
-        .file-upload-btn:hover { border-color: var(--neon-green); color: #fff; }
-    </style>
+  <style>
+    body {
+      background-color: #06080d;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .font-teko {
+      font-family: 'Teko', sans-serif;
+    }
+    .card-gold {
+      background: linear-gradient(135deg, #f3c649 0%, #aa7c11 100%);
+      border: 2px solid #ffd700;
+      box-shadow: 0 0 15px rgba(243, 198, 73, 0.3);
+    }
+    .fut-card {
+      position: relative;
+      background: linear-gradient(180deg, #1f293d 0%, #0d131d 100%);
+      border: 2px solid #f3c649;
+      border-radius: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .fut-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 10px 25px rgba(243, 198, 73, 0.4);
+    }
+    .pitch-bg {
+      background: radial-gradient(circle, #1a472a 0%, #0d2818 100%);
+      border: 3px solid #2e7d32;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0d14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e2838;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f3c649;
+    }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between selection:bg-ea-gold selection:text-black">
 
-    <!-- MODAL DE CADASTRO OBRIGATÓRIO DE TÉCNICO -->
-    <div class="modal-overlay active" id="modal-register-user" style="backdrop-filter: blur(15px);">
-        <div class="modal-card" style="text-align: center; border: 2px solid var(--neon-green);">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚽</div>
-            <h2 style="font-family: var(--font-title); font-size: 2.8rem; color: #fff; margin-bottom: 0.5rem;">BEM-VINDO AO STARS SIMULATOR</h2>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Para começar a gerenciar sua carreira e seus clubes, cadastre o seu nome de Técnico:</p>
-            <div class="form-group" style="text-align: left;">
-                <label>Nome do Técnico</label>
-                <input type="text" id="input-coach-name" class="form-control" placeholder="Ex: Abel Ferreira, Guardiola..." autofocus>
-            </div>
-            <div id="register-error" style="color: var(--danger-red); font-size: 0.9rem; margin-bottom: 1rem; display: none;"></div>
-            <button class="btn" style="width: 100%; padding: 1rem;" onclick="registerCoach()">ACESSAR O JOGO</button>
+  <header class="bg-ea-card/90 backdrop-blur-md border-b border-ea-gold/30 sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-ea-gold text-black flex items-center justify-center font-bold font-teko text-2xl shadow-lg shadow-ea-gold/20">
+          SS
         </div>
+        <div>
+          <h1 class="font-teko text-3xl font-bold tracking-wider leading-none text-transparent bg-clip-text bg-gradient-to-r from-ea-gold via-white to-ea-green">
+            STARS SIMULATOR
+          </h1>
+          <p class="text-xs text-gray-400 font-medium">EA FC DRAFT & TACTICAL MATCH ENGINE</p>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap gap-2 text-sm font-semibold">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-lg bg-ea-gold text-black hover:bg-yellow-400 transition">
+          <i class="fa-solid fa-gauge mr-1"></i> Dashboard
+        </button>
+        <button onclick="switchTab('teams')" id="nav-teams" class="nav-btn px-4 py-2 rounded-lg bg-ea-gray text-white hover:bg-ea-gold/20 transition">
+          <i class="fa-solid fa-shield-halved mr-1"></i> Times & Escalações
+        </button>
+        <button onclick="switchTab('athletes')" id="nav-athletes" class="nav-btn px-4 py-2 rounded-lg bg-ea-gray text-white hover:bg-ea-gold/20 transition">
+          <i class="fa-solid fa-users mr-1"></i> Banco de Atletas
+        </button>
+        <button onclick="switchTab('simulation')" id="nav-simulation" class="nav-btn px-4 py-2 rounded-lg bg-ea-gray text-white hover:bg-ea-gold/20 transition">
+          <i class="fa-solid fa-gamepad mr-1"></i> Simulação 2D
+        </button>
+      </nav>
     </div>
+  </header>
 
-    <!-- ANIMAÇÃO DE GOL OVERLAY -->
-    <div class="goal-overlay" id="goal-animation-overlay">
-        <div class="goal-card-anim">
-            <h1 class="goal-title-anim">⚽ GOL! ⚽</h1>
-            <div id="goal-scorer-info" style="font-family: var(--font-sub); font-size: 1.8rem; font-weight: 700; color: #fff;"></div>
+  <main class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-1">
+
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Coach & Quick Stats -->
+        <div class="bg-ea-card border border-gray-800 rounded-xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+            <h2 class="font-teko text-2xl font-bold text-ea-gold uppercase">Perfil do Técnico</h2>
+            <button onclick="editCoachModal()" class="text-xs text-ea-green hover:underline">
+              <i class="fa-solid fa-pen"></i> Editar
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-ea-pink to-ea-gold p-1">
+              <div class="w-full h-full bg-ea-dark rounded-full flex items-center justify-center text-2xl text-ea-gold">
+                <i class="fa-solid fa-user-tie"></i>
+              </div>
+            </div>
+            <div>
+              <p class="text-xl font-bold text-white" id="coach-name-display">Técnico Padrão</p>
+              <p class="text-xs text-gray-400" id="coach-club-display">Corinthians Paulista</p>
+              <span class="inline-block mt-1 text-[10px] bg-ea-green/20 text-ea-green px-2 py-0.5 rounded font-mono">STATUS: ATIVO</span>
+            </div>
+          </div>
         </div>
+
+        <!-- Quick Stats Banner -->
+        <div class="bg-ea-card border border-gray-800 rounded-xl p-5 shadow-xl md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-ea-dark/60 p-4 rounded-lg border border-gray-800/80 text-center">
+            <p class="text-xs text-gray-400 uppercase">Total de Times</p>
+            <p class="font-teko text-4xl font-bold text-ea-gold" id="stat-total-teams">0</p>
+          </div>
+          <div class="bg-ea-dark/60 p-4 rounded-lg border border-gray-800/80 text-center">
+            <p class="text-xs text-gray-400 uppercase">Total Atletas</p>
+            <p class="font-teko text-4xl font-bold text-ea-green" id="stat-total-athletes">0</p>
+          </div>
+          <div class="bg-ea-dark/60 p-4 rounded-lg border border-gray-800/80 text-center">
+            <p class="text-xs text-gray-400 uppercase">Partidas Jogadas</p>
+            <p class="font-teko text-4xl font-bold text-ea-blue" id="stat-matches-played">0</p>
+          </div>
+          <div class="bg-ea-dark/60 p-4 rounded-lg border border-gray-800/80 text-center">
+            <p class="text-xs text-gray-400 uppercase">Gols Marcados</p>
+            <p class="font-teko text-4xl font-bold text-ea-pink" id="stat-total-goals">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Logs & Quick Actions -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-ea-card border border-gray-800 rounded-xl p-5">
+          <h2 class="font-teko text-2xl font-bold text-ea-gold uppercase border-b border-gray-800 pb-2 mb-4">
+            <i class="fa-solid fa-list-check mr-2"></i> Histórico de Atividades
+          </h2>
+          <div id="activity-log-container" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+            <!-- Logs injected dynamically -->
+          </div>
+        </div>
+
+        <div class="bg-ea-card border border-gray-800 rounded-xl p-5 space-y-3">
+          <h2 class="font-teko text-2xl font-bold text-ea-gold uppercase border-b border-gray-800 pb-2">Ações Rápidas</h2>
+          <button onclick="openCreateAthleteModal()" class="w-full py-3 px-4 bg-gradient-to-r from-ea-green/20 to-ea-green/40 border border-ea-green/50 text-ea-green font-bold rounded-lg hover:brightness-125 transition flex items-center justify-between">
+            <span><i class="fa-solid fa-user-plus mr-2"></i> Criar Novo Atleta</span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+          <button onclick="openCreateTeamModal()" class="w-full py-3 px-4 bg-gradient-to-r from-ea-gold/20 to-ea-gold/40 border border-ea-gold/50 text-ea-gold font-bold rounded-lg hover:brightness-125 transition flex items-center justify-between">
+            <span><i class="fa-solid fa-shield-plus mr-2"></i> Cadastrar Novo Time</span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+          <button onclick="switchTab('simulation')" class="w-full py-3 px-4 bg-gradient-to-r from-ea-pink/20 to-ea-pink/40 border border-ea-pink/50 text-ea-pink font-bold rounded-lg hover:brightness-125 transition flex items-center justify-between">
+            <span><i class="fa-solid fa-play mr-2"></i> Iniciar Simulação</span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEAMS VIEW -->
+    <section id="view-teams" class="hidden space-y-6">
+      <div class="flex flex-wrap justify-between items-center gap-4 bg-ea-card p-4 rounded-xl border border-gray-800">
+        <div>
+          <h2 class="font-teko text-3xl font-bold text-ea-gold leading-none">GESTÃO DE TIMES E TÁTICA</h2>
+          <p class="text-xs text-gray-400">Monte formações, posicione goleiros corretamente e ajuste a equipe.</p>
+        </div>
+        <button onclick="openCreateTeamModal()" class="px-4 py-2 bg-ea-gold text-black font-bold rounded-lg hover:bg-yellow-400 transition">
+          <i class="fa-solid fa-plus mr-1"></i> Criar Novo Time
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Team Selector / List -->
+        <div class="bg-ea-card p-5 rounded-xl border border-gray-800 space-y-4">
+          <h3 class="font-teko text-2xl font-bold text-white border-b border-gray-800 pb-2">SELECIONE O TIME</h3>
+          <div id="team-list-selector" class="space-y-2 max-h-[500px] overflow-y-auto">
+            <!-- Dynamic Teams List -->
+          </div>
+        </div>
+
+        <!-- Tactical Board (Canvas Pitch) -->
+        <div class="lg:col-span-2 bg-ea-card p-5 rounded-xl border border-gray-800 space-y-4">
+          <div class="flex flex-wrap justify-between items-center gap-2">
+            <h3 id="current-tactical-team-name" class="font-teko text-2xl font-bold text-ea-gold uppercase">Nenhum time selecionado</h3>
+            <div class="flex gap-2">
+              <select id="formation-select" onchange="changeTeamFormation(this.value)" class="bg-ea-dark text-white text-xs border border-gray-700 rounded px-2 py-1">
+                <option value="4-3-3">Formação: 4-3-3</option>
+                <option value="4-4-2">Formação: 4-4-2</option>
+                <option value="3-5-2">Formação: 3-5-2</option>
+              </select>
+              <button onclick="deleteCurrentTeam()" class="bg-ea-pink/20 border border-ea-pink text-ea-pink px-3 py-1 text-xs rounded font-bold hover:bg-ea-pink hover:text-white transition">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tactical Field View -->
+          <div class="pitch-bg rounded-xl p-4 min-h-[420px] relative flex flex-col justify-between" id="tactical-field">
+            <p class="text-center text-xs text-green-300 font-mono">CAMPO TÁTICO - ARRASTE OS ATLETAS PARA POSICIONAR</p>
+            <div id="tactical-positions-grid" class="grid grid-cols-5 gap-2 my-auto">
+              <!-- Dynamically rendered tactical slots -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ATHLETES BANK VIEW (FIXED & IMPROVED) -->
+    <section id="view-athletes" class="hidden space-y-6">
+      <div class="bg-ea-card p-5 rounded-xl border border-gray-800 space-y-4">
+        <div class="flex flex-wrap justify-between items-center gap-4 border-b border-gray-800 pb-4">
+          <div>
+            <h2 class="font-teko text-3xl font-bold text-ea-gold leading-none">BANCO DE ATLETAS</h2>
+            <p class="text-xs text-gray-400">Exibição completa de todos os jogadores criados no simulador.</p>
+          </div>
+          <button onclick="openCreateAthleteModal()" class="px-4 py-2 bg-ea-green text-black font-bold rounded-lg hover:bg-green-400 transition">
+            <i class="fa-solid fa-plus mr-1"></i> Criar Atleta
+          </button>
+        </div>
+
+        <!-- FILTERS & SEARCH BAR -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-ea-dark/80 p-4 rounded-xl border border-gray-800">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Filtrar por Time</label>
+            <select id="athlete-filter-team" onchange="renderAthletesBank()" class="w-full bg-ea-card border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ea-gold">
+              <option value="ALL">Todos os Times</option>
+              <!-- Options populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Buscar por Nome</label>
+            <input type="text" id="athlete-search-name" oninput="renderAthletesBank()" placeholder="Ex: Depay, Alberto..." class="w-full bg-ea-card border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ea-gold">
+          </div>
+          <div class="flex items-end">
+            <button onclick="resetAthleteFilters()" class="w-full py-2 bg-ea-gray border border-gray-700 text-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-700 transition">
+              <i class="fa-solid fa-rotate-left mr-1"></i> Limpar Filtros
+            </button>
+          </div>
+        </div>
+
+        <!-- FULL FLEX/GRID CONTAINER FOR ALL ATHLETES -->
+        <div id="athletes-bank-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-2">
+          <!-- Dynamically populated without truncation/clipping -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMULATION VIEW -->
+    <section id="view-simulation" class="hidden space-y-6">
+      <div class="bg-ea-card p-4 rounded-xl border border-gray-800 flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h2 class="font-teko text-3xl font-bold text-ea-gold leading-none">SIMULAÇÃO DE PARTIDA 2D</h2>
+          <p class="text-xs text-gray-400">Motor de simulação com limitação de substituições e modo de pausa.</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="sim-start-btn" onclick="startMatchSimulation()" class="px-5 py-2 bg-ea-green text-black font-bold rounded-lg hover:bg-green-400 transition">
+            <i class="fa-solid fa-play mr-1"></i> Iniciar Jogo
+          </button>
+          <button id="sim-pause-btn" onclick="togglePauseSimulation()" disabled class="px-5 py-2 bg-ea-gold text-black font-bold rounded-lg disabled:opacity-50 transition">
+            <i class="fa-solid fa-pause mr-1"></i> Pausar / Sub
+          </button>
+        </div>
+      </div>
+
+      <!-- Match Scoreboard Header -->
+      <div class="bg-ea-card border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+        <div class="flex items-center gap-3 w-1/3">
+          <div class="w-12 h-12 rounded-full bg-ea-dark border border-ea-gold flex items-center justify-center font-bold text-ea-gold text-lg" id="sim-home-badge">
+            HOM
+          </div>
+          <div>
+            <h3 class="font-teko text-2xl font-bold text-white leading-none" id="sim-home-name">Time Casa</h3>
+            <span class="text-[10px] text-gray-400" id="sim-home-subs-left">Pausas: 3 | Subs: 5</span>
+          </div>
+        </div>
+
+        <div class="text-center w-1/3">
+          <div class="font-teko text-5xl font-bold text-ea-gold tracking-widest">
+            <span id="sim-score-home">0</span> - <span id="sim-score-away">0</span>
+          </div>
+          <div class="text-xs font-mono text-ea-green" id="sim-timer">00:00</div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 w-1/3 text-right">
+          <div>
+            <h3 class="font-teko text-2xl font-bold text-white leading-none" id="sim-away-name">Time Visitante</h3>
+            <span class="text-[10px] text-gray-400" id="sim-away-subs-left">Pausas: 3 | Subs: 5</span>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-ea-dark border border-ea-pink flex items-center justify-center font-bold text-ea-pink text-lg" id="sim-away-badge">
+            VIS
+          </div>
+        </div>
+      </div>
+
+      <!-- Pitch Simulation Field -->
+      <div class="pitch-bg rounded-xl p-4 relative h-[380px] border-2 border-green-600 overflow-hidden" id="match-canvas-field">
+        <!-- Center Line & Circle -->
+        <div class="absolute inset-y-0 left-1/2 w-0.5 bg-white/20"></div>
+        <div class="absolute top-1/2 left-1/2 w-32 h-32 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20"></div>
+        
+        <!-- Dynamic Ball & Players Canvas Elements -->
+        <div id="sim-ball" class="absolute w-4 h-4 bg-yellow-300 rounded-full shadow-lg shadow-yellow-300/80 transition-all duration-300 -translate-x-1/2 -translate-y-1/2" style="top: 50%; left: 50%;"></div>
+        
+        <div id="sim-attack-indicator" class="absolute top-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-mono text-ea-gold border border-ea-gold/30">
+          Aguardando início do jogo...
+        </div>
+      </div>
+
+      <!-- Match Live Feed Log -->
+      <div class="bg-ea-card border border-gray-800 rounded-xl p-4 space-y-2">
+        <h4 class="font-teko text-xl font-bold text-white border-b border-gray-800 pb-1">NARRAÇÃO DA PARTIDA</h4>
+        <div id="sim-logs" class="h-32 overflow-y-auto space-y-1 text-xs font-mono text-gray-300">
+          <p class="text-gray-500">O jogo ainda não começou.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: CREATE / EDIT ATHLETE -->
+  <div id="modal-athlete" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ea-card border border-ea-gold/50 rounded-xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+        <h3 class="font-teko text-2xl font-bold text-ea-gold" id="modal-athlete-title">CRIAR / EDITAR ATLETA</h3>
+        <button onclick="closeModal('modal-athlete')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form id="form-athlete" onsubmit="handleSaveAthlete(event)" class="space-y-3">
+        <input type="hidden" id="ath-id">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Nome do Jogador</label>
+          <input type="text" id="ath-name" required class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Overall (OVR)</label>
+            <input type="number" id="ath-ovr" min="40" max="99" value="75" required class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Posição Principal</label>
+            <select id="ath-pos" class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
+              <option value="GK">GK (Goleiro)</option>
+              <option value="CB">CB (Zagueiro)</option>
+              <option value="LB">LB (Lat. Esquerdo)</option>
+              <option value="RB">RB (Lat. Direito)</option>
+              <option value="CM">CM (Meio-Campo)</option>
+              <option value="CAM">CAM (Mei. Armador)</option>
+              <option value="RW">RW (Ponta Dir.)</option>
+              <option value="LW">LW (Ponta Esq.)</option>
+              <option value="ST" selected>ST (Atacante)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Time Vinculado</label>
+          <select id="ath-team" class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">URL da Foto Render Cutout (Opcional)</label>
+          <input type="url" id="ath-photo" placeholder="https://..." class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-athlete')" class="px-4 py-2 bg-gray-800 text-gray-300 rounded font-semibold text-xs">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-ea-gold text-black font-bold rounded text-xs hover:bg-yellow-400">Salvar Atleta</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <header>
-        <div class="logo-container">
-            <span style="font-size:2rem">⚡</span>
-            <div class="logo-title">STARS SIMULATOR</div>
+  <!-- MODAL: CREATE TEAM -->
+  <div id="modal-team" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ea-card border border-ea-gold/50 rounded-xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+        <h3 class="font-teko text-2xl font-bold text-ea-gold">CRIAR NOVO TIME</h3>
+        <button onclick="closeModal('modal-team')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form id="form-team" onsubmit="handleSaveTeam(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Nome do Clube</label>
+          <input type="text" id="team-name" required class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
         </div>
-        <nav>
-            <button class="nav-btn active" onclick="switchTab('tab-home')">Início</button>
-            <button class="nav-btn" onclick="switchTab('tab-match')">Partida Rápida</button>
-            <button class="nav-btn" onclick="switchTab('tab-draft')">Draft</button>
-            <button class="nav-btn" onclick="switchTab('tab-teams')">Times</button>
-            <button class="nav-btn" onclick="switchTab('tab-players')">Atletas</button>
-            <button class="nav-btn" onclick="switchTab('tab-logs')">Logs</button>
-        </nav>
-        <div class="user-badge" title="Técnico Atual">
-            <span>👤</span>
-            <span id="current-user-display" style="font-weight:700">Técnico</span>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Abreviação (3 Letras)</label>
+          <input type="text" id="team-code" maxlength="3" required class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white uppercase focus:border-ea-gold outline-none">
         </div>
-    </header>
-
-    <main>
-        <!-- TAB: INÍCIO (VITRINE) -->
-        <section id="tab-home" class="tab-content active">
-            <div class="hero-banner">
-                <div class="hero-title">O SIMULADOR DEFINITIVO DE FUTEBOL</div>
-                <div class="hero-sub">Construa seus clubes, escale até 30 atletas por elenco, domine as táticas em campo e viva a emoção das partidas em tempo real.</div>
-                <div style="display:flex; gap:1rem;">
-                    <button class="btn" onclick="switchTab('tab-match')">🚀 Partida Rápida</button>
-                    <button class="btn btn-secondary" onclick="switchTab('tab-draft')">🎴 Iniciar Draft</button>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">🛡️</div>
-                    <div>
-                        <div class="stat-val" id="count-teams">0</div>
-                        <div class="stat-lbl">Times Cadastrados</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🏃</div>
-                    <div>
-                        <div class="stat-val" id="count-players">0</div>
-                        <div class="stat-lbl">Atletas Registrados</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">⚔️</div>
-                    <div>
-                        <div class="stat-val" id="count-matches">0</div>
-                        <div class="stat-lbl">Partidas Realizadas</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB: PARTIDA RÁPIDA -->
-        <section id="tab-match" class="tab-content">
-            <div class="match-container">
-                <div class="pitch-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <label style="font-size:0.85rem; color:var(--text-muted)">VELOCIDADE:</label>
-                            <select id="sim-speed" class="form-control" style="padding:0.3rem 0.6rem">
-                                <option value="2500">Super Lento</option>
-                                <option value="1500">Lento</option>
-                                <option value="800" selected>Normal</option>
-                                <option value="400">Rápido</option>
-                                <option value="150">Super Rápido</option>
-                            </select>
-                        </div>
-                        <button id="btn-start-sim" class="btn" onclick="toggleSimulation()">▶️ Iniciar Partida</button>
-                        <button id="btn-pause-sim" class="btn btn-secondary" onclick="pauseSimulation()" style="display:none">⏸️ Pausar</button>
-                    </div>
-
-                    <div class="scoreboard">
-                        <div class="team-score-info">
-                            <img id="match-home-logo" src="https://via.placeholder.com/50" class="team-logo-small">
-                            <div>
-                                <select id="select-home-team" class="form-control" onchange="updateMatchTeams()"></select>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="score-display"><span id="score-home">0</span> - <span id="score-away">0</span></div>
-                            <div id="match-time" style="text-align:center; color:var(--neon-green); font-weight:700">00:00</div>
-                        </div>
-                        <div class="team-score-info away">
-                            <div>
-                                <select id="select-away-team" class="form-control" onchange="updateMatchTeams()"></select>
-                            </div>
-                            <img id="match-away-logo" src="https://via.placeholder.com/50" class="team-logo-small">
-                        </div>
-                    </div>
-
-                    <!-- CAMPO 2D REALISTA COM ATAQUE DINÂMICO -->
-                    <div class="pitch-2d" id="pitch-canvas">
-                        <div class="grass-stripes"></div>
-                        <div class="pitch-lines-box">
-                            <div class="center-line"></div>
-                            <div class="center-circle"></div>
-                            <div class="penalty-area-left"></div>
-                            <div class="penalty-area-right"></div>
-                            <div class="goal-left"></div>
-                            <div class="goal-right"></div>
-                        </div>
-                        <div class="ball" id="match-ball"></div>
-                        <div class="attack-indicator" id="attack-tag">AGUARDANDO INÍCIO</div>
-                    </div>
-
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <button class="btn btn-secondary" onclick="openSubModal('home')">🔄 Sub. Mandante (Pausas: <span id="home-pauses-left">3</span> | Trocas: <span id="home-subs-left">5</span>)</button>
-                        <button class="btn btn-secondary" onclick="openSubModal('away')">🔄 Sub. Visitante (Pausas: <span id="away-pauses-left">3</span> | Trocas: <span id="away-subs-left">5</span>)</button>
-                    </div>
-                </div>
-
-                <div class="ticker-box">
-                    <div style="font-family:var(--font-title); font-size:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem">
-                        CENTRAL DE EVENTOS E NARRAÇÃO
-                    </div>
-                    <div class="ticker-list" id="match-ticker">
-                        <div class="ticker-item"><span>📢</span> Aguardando início da partida...</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB: DRAFT -->
-        <section id="tab-draft" class="tab-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                <h2 style="font-family:var(--font-title); font-size:2.5rem">DRAFT DE ELENCO</h2>
-                <button class="btn" onclick="startNewDraft()">✨ Novo Draft</button>
-            </div>
-            <div id="draft-pick-container">
-                <div id="draft-pick-area" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:1rem; margin-bottom:2rem;"></div>
-            </div>
-
-            <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">CAMPO TÁTICO E RESERVAS DO DRAFT</h3>
-            <div class="draft-pitch-container">
-                <div class="tactical-board" id="draft-tactical-pitch">
-                    <div class="grass-stripes"></div>
-                </div>
-                <div style="margin-top:1rem;">
-                    <h4 style="color:var(--text-muted); font-family:var(--font-sub); margin-bottom:0.5rem;">BANCO DE RESERVAS (<span id="draft-bench-count">0</span>/7)</h4>
-                    <div id="draft-bench-display" style="display:flex; gap:0.8rem; flex-wrap:wrap;"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB: TIMES -->
-        <section id="tab-teams" class="tab-content">
-            <div style="display:grid; grid-template-columns: 380px 1fr; gap:1.5rem;">
-                <div class="pitch-card">
-                    <h3 style="font-family:var(--font-title); font-size:1.8rem" id="team-form-title">GERENCIAR CLUBE</h3>
-                    <form id="form-team" onsubmit="saveTeam(event)">
-                        <input type="hidden" id="team-id">
-                        <div class="form-group">
-                            <label>Nome do Clube</label>
-                            <input type="text" id="team-name" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Sigla (3 Letras)</label>
-                            <input type="text" id="team-code" class="form-control" maxlength="3" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Logo do Clube (URL ou Arquivo)</label>
-                            <input type="text" id="team-logo-url" class="form-control" placeholder="https://...">
-                            <div style="margin-top:0.4rem">
-                                <label class="file-upload-btn">
-                                    📁 Upload Logo Local
-                                    <input type="file" accept="image/*" style="display:none" onchange="handleFileUpload(event, 'team-logo-url')">
-                                </label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Formação Padrão</label>
-                            <select id="team-formation" class="form-control" onchange="renderTeamTacticalEditor()">
-                                <option value="4-3-3">4-3-3</option>
-                                <option value="4-4-2">4-4-2</option>
-                                <option value="3-5-2">3-5-2</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Prancheta Tática (Posicionamento dos Titulares)</label>
-                            <div class="tactical-board-editor" id="team-tactic-editor"></div>
-                        </div>
-
-                        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
-                            <button type="submit" class="btn" style="flex:1">Salvar Clube</button>
-                            <button type="button" class="btn btn-secondary" id="cancel-team-edit" onclick="resetTeamForm()" style="display:none">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div>
-                    <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">CLUBES CADASTRADOS</h3>
-                    <div id="teams-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB: ATLETAS -->
-        <section id="tab-players" class="tab-content">
-            <div style="display:grid; grid-template-columns: 350px 1fr; gap:1.5rem;">
-                <div class="pitch-card">
-                    <h3 style="font-family:var(--font-title); font-size:1.8rem" id="player-form-title">CADASTRAR ATLETA</h3>
-                    <form id="form-player" onsubmit="savePlayer(event)">
-                        <input type="hidden" id="player-id">
-                        <div class="form-group">
-                            <label>Nome do Atleta</label>
-                            <input type="text" id="player-name" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Clube (Máx 30 atletas)</label>
-                            <select id="player-team-select" class="form-control" required></select>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem">
-                            <div class="form-group">
-                                <label>Overall (40-99)</label>
-                                <input type="number" id="player-ovr" class="form-control" min="40" max="99" value="75" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Posição</label>
-                                <select id="player-pos" class="form-control">
-                                    <option value="GK">Goleiro (GK)</option>
-                                    <option value="CB">Zagueiro (CB)</option>
-                                    <option value="LB">Lat. Esquerdo (LB)</option>
-                                    <option value="RB">Lat. Direito (RB)</option>
-                                    <option value="CM">Meio-Campo (CM)</option>
-                                    <option value="CAM">Mei. Armador (CAM)</option>
-                                    <option value="ST">Atacante (ST)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem">
-                            <div class="form-group">
-                                <label>Perna Boa</label>
-                                <select id="player-foot" class="form-control">
-                                    <option value="Direita">Direita</option>
-                                    <option value="Esquerda">Esquerda</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Drible (1-5★)</label>
-                                <input type="number" id="player-skills" class="form-control" min="1" max="5" value="3" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Foto do Atleta (3x4)</label>
-                            <input type="text" id="player-photo-url" class="form-control" placeholder="https://...">
-                            <div style="margin-top:0.4rem">
-                                <label class="file-upload-btn">
-                                    📁 Upload Foto Local
-                                    <input type="file" accept="image/*" style="display:none" onchange="handleFileUpload(event, 'player-photo-url')">
-                                </label>
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button type="submit" class="btn" style="flex:1">Salvar Atleta</button>
-                            <button type="button" class="btn btn-secondary" id="cancel-player-edit" onclick="resetPlayerForm()" style="display:none">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div>
-                    <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">BANCO DE ATLETAS</h3>
-                    <div id="players-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:1rem;"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB: LOGS -->
-        <section id="tab-logs" class="tab-content">
-            <h2 style="font-family:var(--font-title); font-size:2.2rem; margin-bottom:1rem">LOGS DE ATIVIDADE DO SISTEMA</h2>
-            <div id="audit-logs-list" class="ticker-box" style="height:auto"></div>
-        </section>
-    </main>
-
-    <!-- MODAL PENALTI -->
-    <div class="modal-overlay" id="modal-penalty">
-        <div class="modal-card">
-            <h2 style="font-family:var(--font-title); font-size:2.5rem; color:var(--vip-gold)">⚠️ PÊNALTI CONFIRMADO!</h2>
-            <p style="margin-bottom:1rem">Escolha o batedor para a cobrança:</p>
-            <select id="penalty-taker-select" class="form-control" style="margin-bottom:1.5rem"></select>
-            <button class="btn" onclick="executePenalty()">⚽ COBRAR PÊNALTI</button>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-team')" class="px-4 py-2 bg-gray-800 text-gray-300 rounded font-semibold text-xs">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-ea-gold text-black font-bold rounded text-xs hover:bg-yellow-400">Cadastrar Time</button>
         </div>
+      </form>
     </div>
+  </div>
 
-    <!-- MODAL SUBSTITUIÇÕES -->
-    <div class="modal-overlay" id="modal-sub">
-        <div class="modal-card">
-            <h2 style="font-family:var(--font-title); font-size:2rem">REALIZAR SUBSTITUIÇÃO</h2>
-            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem">A partida está pausada. Escolha quem sai e quem entra:</p>
-            <div class="form-group">
-                <label>Jogador em Campo (Sai)</label>
-                <select id="sub-out-select" class="form-control"></select>
-            </div>
-            <div class="form-group">
-                <label>Jogador no Banco (Entra)</label>
-                <select id="sub-in-select" class="form-control"></select>
-            </div>
-            <div style="display:flex; gap:1rem; margin-top:1.5rem">
-                <button class="btn" onclick="confirmSub()">Confirmar Substituição</button>
-                <button class="btn btn-secondary" onclick="closeSubModal()">Fechar</button>
-            </div>
+  <!-- MODAL: EDIT COACH (WITH PROFANITY FILTER) -->
+  <div id="modal-coach" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ea-card border border-ea-gold/50 rounded-xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+        <h3 class="font-teko text-2xl font-bold text-ea-gold">REGISTRAR TÉCNICO</h3>
+        <button onclick="closeModal('modal-coach')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form id="form-coach" onsubmit="handleSaveCoach(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Nome do Treinador</label>
+          <input type="text" id="coach-input-name" required class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none">
+          <p class="text-[10px] text-gray-500 mt-1">* Sistema com filtro de palavras inadequadas ativado.</p>
         </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-coach')" class="px-4 py-2 bg-gray-800 text-gray-300 rounded font-semibold text-xs">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-ea-green text-black font-bold rounded text-xs hover:bg-green-400">Salvar Treinador</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <script>
-        // ESTADO GLOBAL DA APLICAÇÃO
-        let currentUser = "";
-        let teams = JSON.parse(localStorage.getItem('stars_teams')) || [];
-        let players = JSON.parse(localStorage.getItem('stars_players')) || [];
-        let logs = JSON.parse(localStorage.getItem('stars_logs')) || [];
+  <!-- MODAL: SUBSTITUTIONS ON PAUSE -->
+  <div id="modal-substitutions" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-ea-card border border-ea-gold/50 rounded-xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+        <h3 class="font-teko text-2xl font-bold text-ea-gold">SUBSTITUIÇÕES DA PARTIDA</h3>
+        <button onclick="closeModal('modal-substitutions')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <p class="text-xs text-gray-300">Escolha o jogador de linha para sair e o reserva para entrar.</p>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Jogador titular a sair:</label>
+          <select id="sub-out-select" class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none"></select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Jogador reserva a entrar:</label>
+          <select id="sub-in-select" class="w-full bg-ea-dark border border-gray-700 rounded p-2 text-sm text-white focus:border-ea-gold outline-none"></select>
+        </div>
+      </div>
 
-        let editingTeamId = null;
-        let editingPlayerId = null;
-        let currentTeamTactics = {};
+      <div class="pt-2 flex justify-end gap-2">
+        <button type="button" onclick="closeModal('modal-substitutions')" class="px-4 py-2 bg-gray-800 text-gray-300 rounded font-semibold text-xs">Fechar</button>
+        <button type="button" onclick="executeSubstitution()" class="px-4 py-2 bg-ea-gold text-black font-bold rounded text-xs hover:bg-yellow-400">Confirmar Troca</button>
+      </div>
+    </div>
+  </div>
 
-        let matchState = {
-            running: false,
-            timer: null,
-            time: 0,
-            homeTeam: null,
-            awayTeam: null,
-            scoreHome: 0,
-            scoreAway: 0,
-            homeSubsLeft: 5,
-            awaySubsLeft: 5,
-            homePausesLeft: 3,
-            awayPausesLeft: 3,
-            subTeamTarget: null
+  <!-- FOOTER -->
+  <footer class="bg-ea-card border-t border-gray-800 p-4 text-center text-xs text-gray-500">
+    <p>Stars Simulator © 2026 - Desenvolvido para Simulação EA Sports FC Draft & Tática</p>
+  </footer>
+
+  <script>
+    // Banned profanity list for coach filter
+    const PROFANITY_LIST = ["palavrao1", "palavrao2", "admin", "hack", "porra", "caralho", "merda"];
+
+    // Initial Default Data
+    let appState = {
+      coach: { name: "Técnico Padrão", club: "Corinthians" },
+      teams: [
+        { id: "t1", name: "Corinthians", code: "SCCP", formation: "4-3-3" },
+        { id: "t2", name: "Palmeiras", code: "PAL", formation: "4-3-3" }
+      ],
+      athletes: [
+        { id: "a1", name: "Gustavo Henrique", ovr: 78, pos: "CB", teamId: "t1", photo: "https://images.footyroom.co/players/gustavo-henrique.png" },
+        { id: "a2", name: "Memphis Depay", ovr: 81, pos: "ST", teamId: "t1", photo: "https://images.footyroom.co/players/depay.png" },
+        { id: "a3", name: "Yuri Alberto", ovr: 83, pos: "ST", teamId: "t1", photo: "https://images.footyroom.co/players/yuri.png" },
+        { id: "a4", name: "Jesse Lingard", ovr: 75, pos: "CAM", teamId: "t1", photo: "https://images.footyroom.co/players/lingard.png" },
+        { id: "a5", name: "Hugo Souza", ovr: 79, pos: "GK", teamId: "t1", photo: "" },
+        { id: "a6", name: "Fagner", ovr: 76, pos: "RB", teamId: "t1", photo: "" },
+        { id: "a7", name: "Breno Bidon", ovr: 74, pos: "CM", teamId: "t1", photo: "" },
+        { id: "a8", name: "Rodrigo Garro", ovr: 82, pos: "CAM", teamId: "t1", photo: "" },
+        { id: "a9", name: "Weverton", ovr: 82, pos: "GK", teamId: "t2", photo: "" },
+        { id: "a10", name: "Raphael Veiga", ovr: 84, pos: "CAM", teamId: "t2", photo: "" }
+      ],
+      selectedTeamId: "t1",
+      logs: [],
+      stats: { matches: 0, goals: 0 }
+    };
+
+    // Simulation Engine State
+    let matchInterval = null;
+    let matchTime = 0;
+    let matchState = {
+      running: false,
+      homeGoals: 0,
+      awayGoals: 0,
+      homeSubs: 5,
+      awaySubs: 5,
+      homePauses: 3,
+      awayPauses: 3
+    };
+
+    // Initialization
+    window.onload = function() {
+      loadLocalStorage();
+      updateDashboardUI();
+      renderTeamsList();
+      renderAthletesBank();
+      renderTacticalField();
+      addLog("Sistema inicializado com sucesso.");
+    };
+
+    // Local Storage Helpers
+    function saveAppState() {
+      localStorage.setItem('stars_sim_state', JSON.stringify(appState));
+      updateDashboardUI();
+    }
+
+    function loadLocalStorage() {
+      const saved = localStorage.getItem('stars_sim_state');
+      if(saved) {
+        try {
+          appState = JSON.parse(saved);
+        } catch(e) {
+          console.error("Erro ao carregar dados salvos", e);
+        }
+      }
+    }
+
+    // Navigation Switcher
+    function switchTab(tabId) {
+      ['dashboard', 'teams', 'athletes', 'simulation'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).classList.remove('bg-ea-gold', 'text-black');
+        document.getElementById(`nav-${t}`).classList.add('bg-ea-gray', 'text-white');
+      });
+
+      document.getElementById(`view-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      activeNav.classList.remove('bg-ea-gray', 'text-white');
+      activeNav.classList.add('bg-ea-gold', 'text-black');
+
+      if(tabId === 'athletes') renderAthletesBank();
+      if(tabId === 'teams') renderTacticalField();
+    }
+
+    function addLog(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      appState.logs.unshift(`[${timestamp}] ${message}`);
+      if(appState.logs.length > 20) appState.logs.pop();
+      
+      const container = document.getElementById('activity-log-container');
+      if(container) {
+        container.innerHTML = appState.logs.map(log => 
+          `<div class="p-2 bg-ea-dark/80 rounded border border-gray-800 text-xs font-mono text-gray-300">${log}</div>`
+        ).join('');
+      }
+    }
+
+    function updateDashboardUI() {
+      document.getElementById('coach-name-display').innerText = appState.coach.name;
+      document.getElementById('coach-club-display').innerText = appState.coach.club;
+      document.getElementById('stat-total-teams').innerText = appState.teams.length;
+      document.getElementById('stat-total-athletes').innerText = appState.athletes.length;
+      document.getElementById('stat-matches-played').innerText = appState.stats.matches;
+      document.getElementById('stat-total-goals').innerText = appState.stats.goals;
+    }
+
+    function renderAthletesBank() {
+      const grid = document.getElementById('athletes-bank-grid');
+      const teamFilter = document.getElementById('athlete-filter-team');
+      const searchName = document.getElementById('athlete-search-name').value.toLowerCase().trim();
+
+      // Populate Team Filter Options if needed
+      const currentSelectedFilter = teamFilter.value || "ALL";
+      teamFilter.innerHTML = '<option value="ALL">Todos os Times</option>' + 
+        appState.teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      teamFilter.value = currentSelectedFilter;
+
+      // Filter Logic
+      let filteredAthletes = appState.athletes.filter(ath => {
+        const matchesTeam = (currentSelectedFilter === "ALL" || ath.teamId === currentSelectedFilter);
+        const matchesName = ath.name.toLowerCase().includes(searchName);
+        return matchesTeam && matchesName;
+      });
+
+      if(filteredAthletes.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fa-solid fa-users-slash text-4xl mb-2"></i>
+            <p>Nenhum atleta encontrado com os filtros aplicados.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Render Cards without truncation/clipping
+      grid.innerHTML = filteredAthletes.map(ath => {
+        const team = appState.teams.find(t => t.id === ath.teamId) || { name: 'Sem Time' };
+        const defaultPhoto = `https://placehold.co/120x150/1e2838/f3c649?text=${encodeURIComponent(ath.pos)}`;
+        
+        return `
+          <div class="fut-card p-3 flex flex-col justify-between items-center text-center shadow-lg">
+            <div class="w-full flex justify-between items-start">
+              <div>
+                <span class="font-teko text-2xl font-bold leading-none text-ea-gold">${ath.ovr}</span>
+                <span class="block text-[10px] font-bold uppercase text-gray-300">${ath.pos}</span>
+              </div>
+              <div class="w-6 h-6 rounded-full bg-ea-dark border border-ea-gold/40 flex items-center justify-center text-[10px] text-ea-gold font-bold">
+                ${team.name.substring(0,2).toUpperCase()}
+              </div>
+            </div>
+
+            <div class="w-24 h-28 my-1 relative flex items-center justify-center">
+              <img src="${ath.photo || defaultPhoto}" onerror="this.src='${defaultPhoto}'" class="max-h-full object-contain drop-shadow-md">
+            </div>
+
+            <div class="w-full border-t border-ea-gold/30 pt-1">
+              <h4 class="font-teko text-xl font-bold uppercase truncate text-white leading-tight">${ath.name}</h4>
+              <p class="text-[10px] text-ea-gold font-bold uppercase">${team.name}</p>
+            </div>
+
+            <div class="w-full mt-2 flex gap-1 pt-2 border-t border-gray-800">
+              <button onclick="editAthleteModal('${ath.id}')" class="flex-1 py-1 bg-ea-gray hover:bg-gray-700 text-gray-200 text-xs rounded font-semibold transition">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button onclick="deleteAthlete('${ath.id}')" class="flex-1 py-1 bg-ea-pink/20 border border-ea-pink/50 text-ea-pink hover:bg-ea-pink hover:text-white text-xs rounded font-semibold transition">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function resetAthleteFilters() {
+      document.getElementById('athlete-filter-team').value = "ALL";
+      document.getElementById('athlete-search-name').value = "";
+      renderAthletesBank();
+    }
+
+    function openCreateAthleteModal() {
+      document.getElementById('modal-athlete-title').innerText = "CRIAR NOVO ATLETA";
+      document.getElementById('ath-id').value = "";
+      document.getElementById('ath-name').value = "";
+      document.getElementById('ath-ovr').value = "75";
+      document.getElementById('ath-pos').value = "ST";
+      document.getElementById('ath-photo').value = "";
+
+      const teamSelect = document.getElementById('ath-team');
+      teamSelect.innerHTML = appState.teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
+      document.getElementById('modal-athlete').classList.remove('hidden');
+    }
+
+    function editAthleteModal(id) {
+      const ath = appState.athletes.find(a => a.id === id);
+      if(!ath) return;
+
+      document.getElementById('modal-athlete-title').innerText = "EDITAR ATLETA";
+      document.getElementById('ath-id').value = ath.id;
+      document.getElementById('ath-name').value = ath.name;
+      document.getElementById('ath-ovr').value = ath.ovr;
+      document.getElementById('ath-pos').value = ath.pos;
+      document.getElementById('ath-photo').value = ath.photo || "";
+
+      const teamSelect = document.getElementById('ath-team');
+      teamSelect.innerHTML = appState.teams.map(t => `<option value="${t.id}" ${t.id === ath.teamId ? 'selected':''}>${t.name}</option>`).join('');
+
+      document.getElementById('modal-athlete').classList.remove('hidden');
+    }
+
+    function handleSaveAthlete(e) {
+      e.preventDefault();
+      const id = document.getElementById('ath-id').value;
+      const name = document.getElementById('ath-name').value.trim();
+      const ovr = parseInt(document.getElementById('ath-ovr').value);
+      const pos = document.getElementById('ath-pos').value;
+      const teamId = document.getElementById('ath-team').value;
+      const photo = document.getElementById('ath-photo').value.trim();
+
+      if(id) {
+        const index = appState.athletes.findIndex(a => a.id === id);
+        if(index !== -1) {
+          appState.athletes[index] = { id, name, ovr, pos, teamId, photo };
+          addLog(`Atleta ${name} atualizado.`);
+        }
+      } else {
+        const newAth = {
+          id: 'ath_' + Date.now(),
+          name, ovr, pos, teamId, photo
         };
+        appState.athletes.push(newAth);
+        addLog(`Novo atleta ${name} criado e associado ao time.`);
+      }
 
-        let draftState = {
-            active: false,
-            starters: [],
-            bench: [],
-            currentPosIndex: 0,
-            positions: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CAM', 'ST', 'ST', 'LW']
-        };
+      saveAppState();
+      renderAthletesBank();
+      closeModal('modal-athlete');
+    }
 
-        const PROFANE_WORDS = ['merda', 'porra', 'caralho', 'puta', 'cu', 'bosta', 'fdp', 'pqp', 'fuck', 'shit', 'asshole'];
+    function deleteAthlete(id) {
+      const ath = appState.athletes.find(a => a.id === id);
+      if(!ath) return;
 
-        // INICIALIZAÇÃO
-        window.onload = () => {
-            updateDashboardStats();
-            renderTeams();
-            renderPlayers();
-            populateTeamDropdowns();
-            renderLogs();
-            renderTeamTacticalEditor();
-        };
+      if(confirm(`Tem certeza que deseja excluir o atleta "${ath.name}"?`)) {
+        appState.athletes = appState.athletes.filter(a => a.id !== id);
+        addLog(`Atleta ${ath.name} excluído do banco.`);
+        saveAppState();
+        renderAthletesBank();
+      }
+    }
 
-        function registerCoach() {
-            const inputName = document.getElementById('input-coach-name').value.trim();
-            const errorBox = document.getElementById('register-error');
+    function renderTeamsList() {
+      const container = document.getElementById('team-list-selector');
+      if(!container) return;
 
-            if (!inputName) {
-                errorBox.innerText = "Por favor, insira um nome válido para o técnico.";
-                errorBox.style.display = 'block';
-                return;
-            }
+      container.innerHTML = appState.teams.map(t => {
+        const isSelected = t.id === appState.selectedTeamId;
+        return `
+          <div onclick="selectTeamForTactics('${t.id}')" class="p-3 rounded-lg border cursor-pointer flex justify-between items-center transition ${isSelected ? 'bg-ea-gold/10 border-ea-gold text-ea-gold' : 'bg-ea-dark border-gray-800 text-white hover:border-gray-700'}">
+            <div>
+              <p class="font-teko text-xl font-bold leading-none">${t.name}</p>
+              <p class="text-[10px] text-gray-400">SIGLA: ${t.code} | Formação: ${t.formation}</p>
+            </div>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </div>
+        `;
+      }).join('');
+    }
 
-            const lowerName = inputName.toLowerCase();
-            const hasProfanity = PROFANE_WORDS.some(word => lowerName.includes(word));
-            if (hasProfanity) {
-                errorBox.innerText = "🚨 Nome ofensivo não permitido! Escolha outro nome.";
-                errorBox.style.display = 'block';
-                return;
-            }
+    function selectTeamForTactics(teamId) {
+      appState.selectedTeamId = teamId;
+      renderTeamsList();
+      renderTacticalField();
+    }
 
-            currentUser = inputName;
-            document.getElementById('current-user-display').innerText = currentUser;
-            document.getElementById('modal-register-user').classList.remove('active');
-            addAuditLog(`Técnico registrado no sistema: ${currentUser}`);
+    function renderTacticalField() {
+      const team = appState.teams.find(t => t.id === appState.selectedTeamId);
+      if(!team) return;
+
+      document.getElementById('current-tactical-team-name').innerText = `${team.name} (${team.formation})`;
+      document.getElementById('formation-select').value = team.formation;
+
+      const teamAthletes = appState.athletes.filter(a => a.teamId === team.id);
+      const grid = document.getElementById('tactical-positions-grid');
+
+      // Simple 5-column tactical slot representation
+      grid.innerHTML = teamAthletes.map(ath => `
+        <div class="bg-ea-dark/90 border border-ea-gold/40 rounded p-2 text-center shadow">
+          <span class="text-xs font-bold text-ea-gold block">${ath.pos}</span>
+          <p class="text-xs font-semibold text-white truncate">${ath.name}</p>
+          <span class="text-[10px] font-mono text-ea-green">OVR: ${ath.ovr}</span>
+        </div>
+      `).join('');
+    }
+
+    function openCreateTeamModal() {
+      document.getElementById('team-name').value = "";
+      document.getElementById('team-code').value = "";
+      document.getElementById('modal-team').classList.remove('hidden');
+    }
+
+    function handleSaveTeam(e) {
+      e.preventDefault();
+      const name = document.getElementById('team-name').value.trim();
+      const code = document.getElementById('team-code').value.trim().toUpperCase();
+
+      const newTeam = { id: 'team_' + Date.now(), name, code, formation: '4-3-3' };
+      appState.teams.push(newTeam);
+      appState.selectedTeamId = newTeam.id;
+
+      addLog(`Novo time "${name}" cadastrado.`);
+      saveAppState();
+      renderTeamsList();
+      renderTacticalField();
+      closeModal('modal-team');
+    }
+
+    function deleteCurrentTeam() {
+      if(appState.teams.length <= 1) {
+        alert("Não é possível excluir o único time existente.");
+        return;
+      }
+      const team = appState.teams.find(t => t.id === appState.selectedTeamId);
+      if(confirm(`Deseja realmente remover o time ${team.name}?`)) {
+        appState.teams = appState.teams.filter(t => t.id !== appState.selectedTeamId);
+        appState.athletes = appState.athletes.filter(a => a.teamId !== appState.selectedTeamId);
+        appState.selectedTeamId = appState.teams[0].id;
+
+        addLog(`Time ${team.name} removido.`);
+        saveAppState();
+        renderTeamsList();
+        renderTacticalField();
+      }
+    }
+
+    function editCoachModal() {
+      document.getElementById('coach-input-name').value = appState.coach.name;
+      document.getElementById('modal-coach').classList.remove('hidden');
+    }
+
+    function handleSaveCoach(e) {
+      e.preventDefault();
+      const inputName = document.getElementById('coach-input-name').value.trim();
+
+      const containsProfanity = PROFANITY_LIST.some(badWord => inputName.toLowerCase().includes(badWord));
+      if(containsProfanity) {
+        alert("Nome inválido! Por favor evite termos desrespeitosos ou ofensivos.");
+        return;
+      }
+
+      appState.coach.name = inputName;
+      addLog(`Nome do treinador alterado para "${inputName}".`);
+      saveAppState();
+      closeModal('modal-coach');
+    }
+
+    function startMatchSimulation() {
+      if(appState.teams.length < 2) {
+        alert("É necessário ter pelo menos 2 times cadastrados para simular uma partida.");
+        return;
+      }
+
+      const homeTeam = appState.teams[0];
+      const awayTeam = appState.teams[1];
+
+      document.getElementById('sim-home-name').innerText = homeTeam.name;
+      document.getElementById('sim-away-name').innerText = awayTeam.name;
+      document.getElementById('sim-home-badge').innerText = homeTeam.code;
+      document.getElementById('sim-away-badge').innerText = awayTeam.code;
+
+      matchState = { running: true, homeGoals: 0, awayGoals: 0, homeSubs: 5, awaySubs: 5, homePauses: 3, awayPauses: 3 };
+      matchTime = 0;
+
+      document.getElementById('sim-start-btn').disabled = true;
+      document.getElementById('sim-pause-btn').disabled = false;
+      document.getElementById('sim-logs').innerHTML = `<p class="text-ea-green">[00:00] Apito inicial! A partida começou!</p>`;
+
+      if(matchInterval) clearInterval(matchInterval);
+      matchInterval = setInterval(updateMatchEngine, 1000);
+    }
+
+    function updateMatchEngine() {
+      if(!matchState.running) return;
+
+      matchTime += 1;
+      const minutes = Math.floor(matchTime * 1.5);
+      const displayMin = minutes < 10 ? `0${minutes}` : minutes;
+      document.getElementById('sim-timer').innerText = `${displayMin}:00`;
+
+      // Ball Movement Simulation
+      const ball = document.getElementById('sim-ball');
+      const randomX = Math.floor(Math.random() * 80) + 10;
+      const randomY = Math.floor(Math.random() * 80) + 10;
+      ball.style.left = `${randomX}%`;
+      ball.style.top = `${randomY}%`;
+
+      // Goal Events
+      if(Math.random() < 0.12) {
+        const isHome = Math.random() > 0.5;
+        if(isHome) {
+          matchState.homeGoals++;
+          document.getElementById('sim-score-home').innerText = matchState.homeGoals;
+          appendSimLog(`[${displayMin} min] GOOOOOOL DO ${document.getElementById('sim-home-name').innerText}! Finalização certeira!`);
+        } else {
+          matchState.awayGoals++;
+          document.getElementById('sim-score-away').innerText = matchState.awayGoals;
+          appendSimLog(`[${displayMin} min] GOOOOOOL DO ${document.getElementById('sim-away-name').innerText}! Grande jogada ensaiada!`);
         }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function updateDashboardStats() {
-            document.getElementById('count-teams').innerText = teams.length;
-            document.getElementById('count-players').innerText = players.length;
-            document.getElementById('count-matches').innerText = logs.filter(l => l.type === 'match').length;
-        }
-
-        function addAuditLog(msg, type='info') {
-            const entry = { user: currentUser || 'Sistema', text: msg, date: new Date().toLocaleTimeString(), type };
-            logs.unshift(entry);
-            localStorage.setItem('stars_logs', JSON.stringify(logs));
-            renderLogs();
-        }
-
-        function renderLogs() {
-            const container = document.getElementById('audit-logs-list');
-            if(!container) return;
-            container.innerHTML = logs.map(l => `
-                <div class="ticker-item">
-                    <span>📝</span>
-                    <div><strong>[${l.date}] ${l.user}:</strong> ${l.text}</div>
-                </div>
-            `).join('');
-        }
-
-        function handleFileUpload(event, targetInputId) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById(targetInputId).value = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // PRANCHETA TÁTICA DO TIME
-        function renderTeamTacticalEditor() {
-            const container = document.getElementById('team-tactic-editor');
-            if(!container) return;
-
-            const formation = document.getElementById('team-formation').value;
-            let positionsConfig = [
-                { id: 'pos_0', label: 'GOL (GK)', top: '82%', left: '50%', isGK: true },
-                { id: 'pos_1', label: 'LE', top: '60%', left: '15%', isGK: false },
-                { id: 'pos_2', label: 'ZAG', top: '65%', left: '38%', isGK: false },
-                { id: 'pos_3', label: 'ZAG', top: '65%', left: '62%', isGK: false },
-                { id: 'pos_4', label: 'LD', top: '60%', left: '85%', isGK: false },
-                { id: 'pos_5', label: 'MEI', top: '42%', left: '30%', isGK: false },
-                { id: 'pos_6', label: 'MEI', top: '42%', left: '50%', isGK: false },
-                { id: 'pos_7', label: 'MEI', top: '42%', left: '70%', isGK: false },
-                { id: 'pos_8', label: 'ATA', top: '18%', left: '20%', isGK: false },
-                { id: 'pos_9', label: 'ATA', top: '15%', left: '50%', isGK: false },
-                { id: 'pos_10', label: 'ATA', top: '18%', left: '80%', isGK: false }
-            ];
-
-            let html = '<div class="grass-stripes"></div>';
-            positionsConfig.forEach(pos => {
-                const assignedPlayerId = currentTeamTactics[pos.id] || '';
-                let filteredPlayers = players.filter(p => pos.isGK ? p.pos === 'GK' : true);
-
-                html += `
-                    <div class="tactic-node-slot" style="top:${pos.top}; left:${pos.left};">
-                        <label>${pos.label}</label>
-                        <select onchange="updateTacticalSlot('${pos.id}', this.value)">
-                            <option value="">(Vazio)</option>
-                            ${filteredPlayers.map(p => `<option value="${p.id}" ${assignedPlayerId === p.id ? 'selected' : ''}>${p.name} (${p.ovr})</option>`).join('')}
-                        </select>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function updateTacticalSlot(slotId, playerId) {
-            currentTeamTactics[slotId] = playerId;
-        }
-
-        // GERENCIAMENTO DE TIMES (COM EXCLUSÃO)
-        function saveTeam(e) {
-            e.preventDefault();
-            const id = editingTeamId || Date.now().toString();
-            const teamData = {
-                id,
-                name: document.getElementById('team-name').value,
-                code: document.getElementById('team-code').value.toUpperCase(),
-                logo: document.getElementById('team-logo-url').value || 'https://via.placeholder.com/100',
-                formation: document.getElementById('team-formation').value,
-                tactics: currentTeamTactics,
-                author: currentUser
-            };
-
-            const idx = teams.findIndex(t => t.id === id);
-            if(idx >= 0) {
-                teams[idx] = teamData;
-                addAuditLog(`Editou o clube: ${teamData.name}`);
-            } else {
-                teams.push(teamData);
-                addAuditLog(`Criou o clube: ${teamData.name}`);
-            }
-
-            localStorage.setItem('stars_teams', JSON.stringify(teams));
-            resetTeamForm();
-            renderTeams();
-            renderPlayers();
-            populateTeamDropdowns();
-            updateDashboardStats();
-        }
-
-        function editTeam(id) {
-            const t = teams.find(item => item.id === id);
-            if(!t) return;
-            editingTeamId = t.id;
-            document.getElementById('team-id').value = t.id;
-            document.getElementById('team-name').value = t.name;
-            document.getElementById('team-code').value = t.code;
-            document.getElementById('team-logo-url').value = t.logo;
-            document.getElementById('team-formation').value = t.formation;
-            currentTeamTactics = t.tactics || {};
-            document.getElementById('team-form-title').innerText = "EDITAR CLUBE";
-            document.getElementById('cancel-team-edit').style.display = 'inline-block';
-            renderTeamTacticalEditor();
-        }
-
-        function deleteTeam(id) {
-            const t = teams.find(item => item.id === id);
-            if(!t) return;
-
-            if(confirm(`Tem certeza que deseja excluir o time "${t.name}"? Os atletas associados ficarão sem clube.`)) {
-                teams = teams.filter(item => item.id !== id);
-                localStorage.setItem('stars_teams', JSON.stringify(teams));
-                addAuditLog(`Excluiu o clube: ${t.name}`);
-                
-                if(editingTeamId === id) resetTeamForm();
-                renderTeams();
-                renderPlayers();
-                populateTeamDropdowns();
-                updateDashboardStats();
-            }
-        }
-
-        function resetTeamForm() {
-            editingTeamId = null;
-            currentTeamTactics = {};
-            document.getElementById('form-team').reset();
-            document.getElementById('team-form-title').innerText = "GERENCIAR CLUBE";
-            document.getElementById('cancel-team-edit').style.display = 'none';
-            renderTeamTacticalEditor();
-        }
-
-        function renderTeams() {
-            const grid = document.getElementById('teams-grid');
-            if(!grid) return;
-            grid.innerHTML = teams.map(t => {
-                const teamPlayersCount = players.filter(p => p.teamId === t.id).length;
-                return `
-                    <div class="pitch-card" style="text-align:center;">
-                        <img src="${t.logo}" style="width:60px; height:60px; object-fit:contain; margin:0 auto 0.5rem">
-                        <div style="font-weight:700; font-family:var(--font-sub); font-size:1.2rem">${t.name} (${t.code})</div>
-                        <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:0.8rem">${teamPlayersCount}/30 Atletas • ${t.formation}</div>
-                        <div style="display:flex; gap:0.4rem; justify-content:center;">
-                            <button class="btn btn-secondary" style="padding:0.3rem 0.8rem; font-size:0.85rem;" onclick="editTeam('${t.id}')">✏️ Editar</button>
-                            <button class="btn btn-danger" style="padding:0.3rem 0.8rem; font-size:0.85rem;" onclick="deleteTeam('${t.id}')">🗑️ Excluir</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // GERENCIAMENTO DE ATLETAS (EXIBE TIME & PERMITE EXCLUSÃO)
-        function savePlayer(e) {
-            e.preventDefault();
-            const teamId = document.getElementById('player-team-select').value;
-            const currentTeamPlayers = players.filter(p => p.teamId === teamId && p.id !== editingPlayerId);
-            
-            if (currentTeamPlayers.length >= 30) {
-                alert("🚨 Este clube já atingiu o limite máximo de 30 atletas cadastrados!");
-                return;
-            }
-
-            const id = editingPlayerId || Date.now().toString();
-            const playerData = {
-                id,
-                name: document.getElementById('player-name').value,
-                teamId,
-                ovr: parseInt(document.getElementById('player-ovr').value),
-                pos: document.getElementById('player-pos').value,
-                foot: document.getElementById('player-foot').value,
-                skills: parseInt(document.getElementById('player-skills').value),
-                photo: document.getElementById('player-photo-url').value || 'https://via.placeholder.com/90',
-                author: currentUser
-            };
-
-            const idx = players.findIndex(p => p.id === id);
-            if(idx >= 0) {
-                players[idx] = playerData;
-                addAuditLog(`Editou o atleta: ${playerData.name}`);
-            } else {
-                players.push(playerData);
-                addAuditLog(`Cadastrou o atleta: ${playerData.name}`);
-            }
-
-            localStorage.setItem('stars_players', JSON.stringify(players));
-            resetPlayerForm();
-            renderPlayers();
-            renderTeams();
-            updateDashboardStats();
-            renderTeamTacticalEditor();
-        }
-
-        function editPlayer(id) {
-            const p = players.find(item => item.id === id);
-            if(!p) return;
-            editingPlayerId = p.id;
-            document.getElementById('player-id').value = p.id;
-            document.getElementById('player-name').value = p.name;
-            document.getElementById('player-team-select').value = p.teamId;
-            document.getElementById('player-ovr').value = p.ovr;
-            document.getElementById('player-pos').value = p.pos;
-            document.getElementById('player-foot').value = p.foot || 'Direita';
-            document.getElementById('player-skills').value = p.skills || 3;
-            document.getElementById('player-photo-url').value = p.photo;
-            document.getElementById('player-form-title').innerText = "EDITAR ATLETA";
-            document.getElementById('cancel-player-edit').style.display = 'inline-block';
-        }
-
-        function deletePlayer(id, event) {
-            if(event) event.stopPropagation();
-            const p = players.find(item => item.id === id);
-            if(!p) return;
-
-            if(confirm(`Deseja excluir o atleta "${p.name}"?`)) {
-                players = players.filter(item => item.id !== id);
-                localStorage.setItem('stars_players', JSON.stringify(players));
-                addAuditLog(`Excluiu o atleta: ${p.name}`);
-
-                if(editingPlayerId === id) resetPlayerForm();
-                renderPlayers();
-                renderTeams();
-                updateDashboardStats();
-                renderTeamTacticalEditor();
-            }
-        }
-
-        function resetPlayerForm() {
-            editingPlayerId = null;
-            document.getElementById('form-player').reset();
-            document.getElementById('player-form-title').innerText = "CADASTRAR ATLETA";
-            document.getElementById('cancel-player-edit').style.display = 'none';
-        }
-
-        function renderPlayers() {
-            const grid = document.getElementById('players-grid');
-            if(!grid) return;
-            grid.innerHTML = players.map(p => {
-                const team = teams.find(t => t.id === p.teamId);
-                const clubLogo = team ? team.logo : 'https://via.placeholder.com/30';
-                const clubName = team ? team.name : 'Sem Clube';
-
-                return `
-                    <div class="fut-card" onclick="editPlayer('${p.id}')" title="Clique para editar">
-                        <div class="fut-ovr">${p.ovr}</div>
-                        <div class="fut-pos">${p.pos}</div>
-                        <img src="${clubLogo}" class="fut-club-logo" title="${clubName}">
-                        <img src="${p.photo}" class="fut-img">
-                        <div class="fut-name">${p.name}</div>
-                        <div class="fut-club-name">${clubName}</div>
-                        <div class="fut-card-actions">
-                            <button class="btn btn-danger" style="padding:0.2rem 0.5rem; font-size:0.7rem;" onclick="deletePlayer('${p.id}', event)">🗑️ Excluir</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function populateTeamDropdowns() {
-            const options = teams.length > 0 
-                ? teams.map(t => `<option value="${t.id}">${t.name} (${t.code})</option>`).join('')
-                : `<option value="">Nenhum time cadastrado</option>`;
-            
-            const selPlayer = document.getElementById('player-team-select');
-            const selHome = document.getElementById('select-home-team');
-            const selAway = document.getElementById('select-away-team');
-            
-            if(selPlayer) selPlayer.innerHTML = options;
-            if(selHome) selHome.innerHTML = options;
-            if(selAway) selAway.innerHTML = options;
-            updateMatchTeams();
-        }
-
-        function updateMatchTeams() {
-            const hId = document.getElementById('select-home-team').value;
-            const aId = document.getElementById('select-away-team').value;
-            matchState.homeTeam = teams.find(t => t.id === hId);
-            matchState.awayTeam = teams.find(t => t.id === aId);
-
-            if(matchState.homeTeam) document.getElementById('match-home-logo').src = matchState.homeTeam.logo;
-            if(matchState.awayTeam) document.getElementById('match-away-logo').src = matchState.awayTeam.logo;
-        }
-
-        // MOTOR DE SIMULAÇÃO DE PARTIDA & ATAQUE DINÂMICO
-        function toggleSimulation() {
-            if(!matchState.homeTeam || !matchState.awayTeam) {
-                alert("Selecione os dois times para iniciar a partida!");
-                return;
-            }
-            if(matchState.running) return;
-            matchState.running = true;
-            document.getElementById('btn-start-sim').style.display = 'none';
-            document.getElementById('btn-pause-sim').style.display = 'inline-flex';
-            
-            const speed = parseInt(document.getElementById('sim-speed').value);
-            matchState.timer = setInterval(stepMatch, speed);
-        }
-
-        function pauseSimulation() {
-            matchState.running = false;
-            clearInterval(matchState.timer);
-            document.getElementById('btn-start-sim').style.display = 'inline-flex';
-            document.getElementById('btn-pause-sim').style.display = 'none';
-        }
-
-        function stepMatch() {
-            matchState.time += 1;
-            document.getElementById('match-time').innerText = `${String(matchState.time).padStart(2,'0')}:00`;
-
-            const isHomeAttack = Math.random() > 0.5;
-            const attackTag = document.getElementById('attack-tag');
-            if (isHomeAttack) {
-                attackTag.innerText = `ATAQUE: ${matchState.homeTeam.name.toUpperCase()}`;
-                attackTag.style.borderColor = 'var(--neon-green)';
-                attackTag.style.color = 'var(--neon-green)';
-            } else {
-                attackTag.innerText = `ATAQUE: ${matchState.awayTeam.name.toUpperCase()}`;
-                attackTag.style.borderColor = 'var(--neon-blue)';
-                attackTag.style.color = 'var(--neon-blue)';
-            }
-
-            const ball = document.getElementById('match-ball');
-            const randX = Math.random() * 84 + 8;
-            const randY = Math.random() * 80 + 10;
-            ball.style.left = `${randX}%`;
-            ball.style.top = `${randY}%`;
-
-            const rand = Math.random();
-            if(rand < 0.04) {
-                const isHomeGoal = isHomeAttack;
-                if(isHomeGoal) matchState.scoreHome++; else matchState.scoreAway++;
-                document.getElementById('score-home').innerText = matchState.scoreHome;
-                document.getElementById('score-away').innerText = matchState.scoreAway;
-                const teamScored = isHomeGoal ? matchState.homeTeam.name : matchState.awayTeam.name;
-                
-                triggerGoalAnimation(teamScored);
-                addTicker(`⚽ GOL DO ${teamScored.toUpperCase()}! (${matchState.time}')`);
-            } else if(rand < 0.055) {
-                pauseSimulation();
-                populatePenaltyTaker();
-                document.getElementById('modal-penalty').classList.add('active');
-            }
-
-            if(matchState.time >= 90) {
-                pauseSimulation();
-                addTicker(`🏁 FIM DE JOGO! Placar Final: ${matchState.homeTeam.name} ${matchState.scoreHome} x ${matchState.scoreAway} ${matchState.awayTeam.name}`);
-                addAuditLog(`Partida realizada: ${matchState.homeTeam.name} ${matchState.scoreHome} x ${matchState.scoreAway} ${matchState.awayTeam.name}`, 'match');
-            }
-        }
-
-        function triggerGoalAnimation(teamName) {
-            document.getElementById('goal-scorer-info').innerText = `Equipe: ${teamName}`;
-            const overlay = document.getElementById('goal-animation-overlay');
-            overlay.classList.add('active');
-            setTimeout(() => {
-                overlay.classList.remove('active');
-            }, 2200);
-        }
-
-        function addTicker(text) {
-            const list = document.getElementById('match-ticker');
-            if(!list) return;
-            list.innerHTML = `<div class="ticker-item"><span>⏱️</span> ${text}</div>` + list.innerHTML;
-        }
-
-        function populatePenaltyTaker() {
-            const team = Math.random() > 0.5 ? matchState.homeTeam : matchState.awayTeam;
-            const teamPlayers = players.filter(p => p.teamId === team.id);
-            const sel = document.getElementById('penalty-taker-select');
-            sel.innerHTML = teamPlayers.length > 0 
-                ? teamPlayers.map(p => `<option value="${p.name}">${p.name} (OVR: ${p.ovr})</option>`).join('')
-                : `<option value="Craque">Craque do Time</option>`;
-        }
-
-        function executePenalty() {
-            document.getElementById('modal-penalty').classList.remove('active');
-            const isGoal = Math.random() > 0.3;
-            if(isGoal) {
-                if(Math.random() > 0.5) matchState.scoreHome++; else matchState.scoreAway++;
-                document.getElementById('score-home').innerText = matchState.scoreHome;
-                document.getElementById('score-away').innerText = matchState.scoreAway;
-                addTicker(`⚽ Pênalti convertido com sucesso! (${matchState.time}')`);
-            } else {
-                addTicker(`❌ Pênalti Perdido / Defendido pelo Goleiro! (${matchState.time}')`);
-            }
-            toggleSimulation();
-        }
-
-        // SUBSTITUIÇÕES COM PAUSA
-        function openSubModal(teamSide) {
-            if(matchState.running) {
-                alert("Você precisa pausar a partida para realizar substituições!");
-                return;
-            }
-            
-            const team = teamSide === 'home' ? matchState.homeTeam : matchState.awayTeam;
-            if(!team) {
-                alert("Selecione os times antes!");
-                return;
-            }
-
-            if(teamSide === 'home' && matchState.homePausesLeft <= 0) {
-                alert("Limite de 3 pausas esgotado para o mandante!");
-                return;
-            }
-            if(teamSide === 'away' && matchState.awayPausesLeft <= 0) {
-                alert("Limite de 3 pausas esgotado para o visitante!");
-                return;
-            }
-
-            if(teamSide === 'home' && matchState.homeSubsLeft <= 0) {
-                alert("Limite de 5 substituições esgotado para o mandante!");
-                return;
-            }
-            if(teamSide === 'away' && matchState.awaySubsLeft <= 0) {
-                alert("Limite de 5 substituições esgotado para o visitante!");
-                return;
-            }
-
-            matchState.subTeamTarget = teamSide;
-            const teamPlayers = players.filter(p => p.teamId === team.id);
-
-            document.getElementById('sub-out-select').innerHTML = teamPlayers.length > 0 
-                ? teamPlayers.map(p => `<option value="${p.id}">${p.name} (${p.pos} - ${p.ovr})</option>`).join('')
-                : `<option value="">Nenhum atleta cadastrado</option>`;
-
-            document.getElementById('sub-in-select').innerHTML = teamPlayers.length > 0 
-                ? teamPlayers.map(p => `<option value="${p.id}">${p.name} (${p.pos} - ${p.ovr})</option>`).join('')
-                : `<option value="">Nenhum atleta cadastrado</option>`;
-
-            document.getElementById('modal-sub').classList.add('active');
-        }
-
-        function closeSubModal() {
-            document.getElementById('modal-sub').classList.remove('active');
-        }
-
-        function confirmSub() {
-            if(matchState.subTeamTarget === 'home') {
-                matchState.homePausesLeft--;
-                matchState.homeSubsLeft--;
-                document.getElementById('home-pauses-left').innerText = matchState.homePausesLeft;
-                document.getElementById('home-subs-left').innerText = matchState.homeSubsLeft;
-            } else {
-                matchState.awayPausesLeft--;
-                matchState.awaySubsLeft--;
-                document.getElementById('away-pauses-left').innerText = matchState.awayPausesLeft;
-                document.getElementById('away-subs-left').innerText = matchState.awaySubsLeft;
-            }
-
-            addTicker(`🔄 Substituição efetuada na equipe ${matchState.subTeamTarget === 'home' ? matchState.homeTeam.name : matchState.awayTeam.name}`);
-            closeSubModal();
-        }
-
-        // MODO DRAFT
-        function startNewDraft() {
-            if(players.length < 5) {
-                alert("Cadastre pelo menos 5 atletas no banco de dados para iniciar o Draft!");
-                return;
-            }
-            draftState.starters = [];
-            draftState.bench = [];
-            draftState.currentPosIndex = 0;
-            document.getElementById('draft-tactical-pitch').innerHTML = '<div class="grass-stripes"></div>';
-            document.getElementById('draft-bench-display').innerHTML = '';
-            showNextDraftPick();
-        }
-
-        function showNextDraftPick() {
-            if(draftState.currentPosIndex >= draftState.positions.length) {
-                document.getElementById('draft-pick-area').innerHTML = `<h3 style="color:var(--neon-green)">Draft concluído com sucesso! Elenco pronto.</h3>`;
-                return;
-            }
-
-            const targetPos = draftState.positions[draftState.currentPosIndex];
-            let available = players.filter(p => p.pos === targetPos);
-            if(available.length === 0) available = players;
-
-            const options = available.sort(() => 0.5 - Math.random()).slice(0, 5);
-
-            const container = document.getElementById('draft-pick-area');
-            container.innerHTML = options.map(p => `
-                <div class="fut-card" onclick="selectDraftPlayer('${p.id}', '${targetPos}')">
-                    <div class="fut-ovr">${p.ovr}</div>
-                    <div class="fut-pos">${p.pos}</div>
-                    <img src="${p.photo}" class="fut-img">
-                    <div class="fut-name">${p.name}</div>
-                </div>
-            `).join('');
-        }
-
-        function selectDraftPlayer(playerId, pos) {
-            const player = players.find(p => p.id === playerId);
-            if(!player) return;
-
-            if(draftState.starters.length < 11) {
-                draftState.starters.push(player);
-                renderDraftTacticalPitch();
-            } else if(draftState.bench.length < 7) {
-                draftState.bench.push(player);
-                renderDraftBench();
-            }
-
-            draftState.currentPosIndex++;
-            showNextDraftPick();
-        }
-
-        function renderDraftTacticalPitch() {
-            const pitch = document.getElementById('draft-tactical-pitch');
-            const coords = [
-                {top: '85%', left: '50%'},
-                {top: '65%', left: '15%'},
-                {top: '68%', left: '38%'},
-                {top: '68%', left: '62%'},
-                {top: '65%', left: '85%'},
-                {top: '45%', left: '35%'},
-                {top: '45%', left: '65%'},
-                {top: '30%', left: '50%'},
-                {top: '15%', left: '20%'},
-                {top: '15%', left: '80%'},
-                {top: '30%', left: '15%'}
-            ];
-
-            let html = '<div class="grass-stripes"></div>';
-            draftState.starters.forEach((p, idx) => {
-                const c = coords[idx] || {top: '50%', left: '50%'};
-                html += `
-                    <div class="tactical-node" style="top: ${c.top}; left: ${c.left};" title="${p.name} (${p.pos})">
-                        <span style="font-size:0.65rem">${p.pos}</span>
-                        <span style="font-size:0.75rem; color:var(--neon-green)">${p.ovr}</span>
-                    </div>
-                `;
-            });
-            pitch.innerHTML = html;
-        }
-
-        function renderDraftBench() {
-            const benchDiv = document.getElementById('draft-bench-display');
-            document.getElementById('draft-bench-count').innerText = draftState.bench.length;
-            benchDiv.innerHTML = draftState.bench.map(p => `
-                <div class="fut-card" style="transform:scale(0.75); margin:-15px;">
-                    <div class="fut-ovr">${p.ovr}</div>
-                    <div class="fut-pos">${p.pos}</div>
-                    <img src="${p.photo}" class="fut-img">
-                    <div class="fut-name">${p.name}</div>
-                </div>
-            `).join('');
-        }
-    </script>
+      }
+
+      if(minutes >= 90) {
+        clearInterval(matchInterval);
+        matchState.running = false;
+        document.getElementById('sim-start-btn').disabled = false;
+        document.getElementById('sim-pause-btn').disabled = true;
+        appendSimLog(`[90:00] Fim de jogo! Placar final: ${matchState.homeGoals} x ${matchState.awayGoals}`);
+        appState.stats.matches++;
+        appState.stats.goals += (matchState.homeGoals + matchState.awayGoals);
+        saveAppState();
+      }
+    }
+
+    function togglePauseSimulation() {
+      if(!matchState.running) return;
+
+      if(matchState.homePauses <= 0) {
+        alert("Limite de pausas atingido para este jogo!");
+        return;
+      }
+
+      matchState.running = false;
+      matchState.homePauses--;
+      document.getElementById('sim-home-subs-left').innerText = `Pausas: ${matchState.homePauses} | Subs: ${matchState.homeSubs}`;
+      
+      openSubstitutionsModal();
+    }
+
+    function openSubstitutionsModal() {
+      const homeTeam = appState.teams[0];
+      const athletes = appState.athletes.filter(a => a.teamId === homeTeam.id);
+
+      const outSelect = document.getElementById('sub-out-select');
+      const inSelect = document.getElementById('sub-in-select');
+
+      outSelect.innerHTML = athletes.slice(0, 5).map(a => `<option value="${a.id}">${a.name} (${a.pos})</option>`).join('');
+      inSelect.innerHTML = athletes.slice(5).map(a => `<option value="${a.id}">${a.name} (${a.pos})</option>`).join('');
+
+      document.getElementById('modal-substitutions').classList.remove('hidden');
+    }
+
+    function executeSubstitution() {
+      if(matchState.homeSubs <= 0) {
+        alert("Sem substituições restantes.");
+        return;
+      }
+
+      matchState.homeSubs--;
+      matchState.running = true;
+      document.getElementById('sim-home-subs-left').innerText = `Pausas: ${matchState.homePauses} | Subs: ${matchState.homeSubs}`;
+
+      closeModal('modal-substitutions');
+      appendSimLog(` Substituição realizada com sucesso durante a pausa.`);
+    }
+
+    function appendSimLog(msg) {
+      const logs = document.getElementById('sim-logs');
+      logs.innerHTML = `<p class="text-gray-200">${msg}</p>` + logs.innerHTML;
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+  </script>
 </body>
 </html>
