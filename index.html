@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stars Simulator - Futebol e Tática</title>
+    <title>Stars Simulator - Futebol & Tática</title>
     <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Rajdhani:wght@600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -38,8 +38,8 @@
             flex-direction: column;
             overflow-x: hidden;
             background-image: 
-                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(0, 255, 135, 0.05) 0%, transparent 40%);
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 255, 135, 0.08) 0%, transparent 40%);
         }
 
         /* HEADER & NAVIGATION */
@@ -54,7 +54,7 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 4px 20px rgba(0,255,135,0.15);
+            box-shadow: 0 4px 20px rgba(0,255,135,0.2);
         }
 
         .logo-container {
@@ -116,10 +116,9 @@
             padding: 0.4rem 1rem;
             border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.1);
-            cursor: pointer;
         }
 
-        /* CONTAINER LAYOUT */
+        /* MAIN CONTAINER */
         main {
             flex: 1;
             max-width: 1400px;
@@ -142,16 +141,14 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* VITRINE / HOME */
+        /* VITRINE / HERO */
         .hero-banner {
-            background: linear-gradient(135deg, rgba(15,22,36,0.9), rgba(8,11,18,0.95)), url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80') center/cover;
+            background: linear-gradient(135deg, rgba(15,22,36,0.95), rgba(8,11,18,0.98)), url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80') center/cover;
             border-radius: 20px;
             padding: 3.5rem 2.5rem;
             border: 1px solid var(--border-glow);
             margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
 
         .hero-title {
@@ -166,7 +163,7 @@
         .hero-sub {
             color: var(--text-muted);
             font-size: 1.2rem;
-            max-width: 600px;
+            max-width: 650px;
             margin-bottom: 2rem;
         }
 
@@ -187,24 +184,11 @@
             gap: 1.2rem;
         }
 
-        .stat-icon {
-            font-size: 2.5rem;
-        }
+        .stat-icon { font-size: 2.5rem; }
+        .stat-val { font-family: var(--font-title); font-size: 2.5rem; color: var(--neon-green); line-height: 1; }
+        .stat-lbl { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; }
 
-        .stat-val {
-            font-family: var(--font-title);
-            font-size: 2.5rem;
-            color: var(--neon-green);
-            line-height: 1;
-        }
-
-        .stat-lbl {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-        }
-
-        /* MATCH ENGINE & PITCH */
+        /* MATCH ENGINE & REALISTIC 2D PITCH */
         .match-container {
             display: grid;
             grid-template-columns: 1fr 340px;
@@ -222,25 +206,23 @@
         }
 
         .scoreboard {
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.5);
             border-radius: 12px;
             padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
         .team-score-info {
             display: flex;
             align-items: center;
             gap: 1rem;
-            width: 35%;
+            width: 38%;
         }
 
-        .team-score-info.away {
-            justify-content: flex-end;
-        }
+        .team-score-info.away { justify-content: flex-end; }
 
         .team-logo-small {
             width: 48px;
@@ -256,61 +238,101 @@
             letter-spacing: 4px;
         }
 
+        /* CAMPO 2D REALISTA */
         .pitch-2d {
-            height: 450px;
-            background: radial-gradient(circle at center, #1e3c28 0%, #0d2214 100%);
+            height: 460px;
+            background: linear-gradient(135deg, #1b4d2e 0%, #11331e 100%);
             border-radius: 16px;
-            border: 2px solid rgba(255,255,255,0.15);
+            border: 3px solid rgba(255,255,255,0.3);
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.8);
         }
 
-        .pitch-lines {
+        .grass-stripes {
             position: absolute;
-            inset: 15px;
-            border: 2px solid rgba(255,255,255,0.25);
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 40px,
+                rgba(0,0,0,0.12) 40px,
+                rgba(0,0,0,0.12) 80px
+            );
+            pointer-events: none;
+        }
+
+        .pitch-lines-box {
+            position: absolute;
+            inset: 20px;
+            border: 2px solid rgba(255,255,255,0.5);
             border-radius: 4px;
             pointer-events: none;
         }
 
-        .pitch-center-line {
+        .center-line {
             position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 50%;
+            top: 0; bottom: 0; left: 50%;
             width: 2px;
-            background: rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.5);
         }
 
-        .pitch-center-circle {
+        .center-circle {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
-            border: 2px solid rgba(255,255,255,0.25);
+            width: 110px; height: 110px;
+            border: 2px solid rgba(255,255,255,0.5);
             border-radius: 50%;
+        }
+
+        .penalty-area-left {
+            position: absolute;
+            top: 25%; left: 0;
+            width: 90px; height: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-left: none;
+        }
+
+        .penalty-area-right {
+            position: absolute;
+            top: 25%; right: 0;
+            width: 90px; height: 50%;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-right: none;
+        }
+
+        .goal-left {
+            position: absolute;
+            top: 40%; left: -10px;
+            width: 10px; height: 20%;
+            border: 2px solid var(--neon-blue);
+            background: rgba(0,240,255,0.25);
+        }
+
+        .goal-right {
+            position: absolute;
+            top: 40%; right: -10px;
+            width: 10px; height: 20%;
+            border: 2px solid var(--neon-blue);
+            background: rgba(0,240,255,0.25);
         }
 
         .ball {
-            width: 14px;
-            height: 14px;
+            width: 16px; height: 16px;
             background: #fff;
             border-radius: 50%;
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px #fff;
+            box-shadow: 0 0 12px #fff, 0 0 20px var(--neon-green);
             transition: all 0.4s ease-out;
-            z-index: 10;
+            z-index: 20;
         }
 
         .attack-indicator {
             position: absolute;
-            top: 20px;
+            top: 15px; left: 25px;
             padding: 0.4rem 1rem;
             background: rgba(0,240,255,0.2);
             border: 1px solid var(--neon-blue);
@@ -319,7 +341,42 @@
             font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
-            transition: all 0.3s;
+            z-index: 30;
+        }
+
+        /* ANIMAÇÃO DE GOL OVERLAY */
+        .goal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .goal-overlay.active { display: flex; }
+
+        .goal-card-anim {
+            text-align: center;
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .goal-title-anim {
+            font-family: var(--font-title);
+            font-size: 6.5rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 35px var(--neon-green);
+            letter-spacing: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
         }
 
         /* TICKER / LOGS */
@@ -354,10 +411,9 @@
             gap: 0.8rem;
         }
 
-        /* FUT CARD STYLES */
+        /* FUT CARDS */
         .fut-card {
-            width: 140px;
-            height: 200px;
+            width: 140px; height: 200px;
             background: linear-gradient(135deg, #2b1f0e, #574119, #1c1306);
             border: 2px solid var(--vip-gold);
             border-radius: 12px;
@@ -371,198 +427,108 @@
             transition: transform 0.2s;
         }
 
-        .fut-card:hover {
-            transform: translateY(-5px) scale(1.03);
-        }
+        .fut-card:hover { transform: translateY(-5px) scale(1.03); }
+        .fut-ovr { position: absolute; top: 8px; left: 10px; font-family: var(--font-title); font-size: 1.8rem; color: var(--vip-gold); line-height: 1; }
+        .fut-pos { position: absolute; top: 32px; left: 10px; font-family: var(--font-sub); font-size: 0.85rem; font-weight: 700; color: #fff; }
+        .fut-img { width: 90px; height: 90px; object-fit: contain; margin-top: 15px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+        .fut-name { font-family: var(--font-sub); font-size: 0.95rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
-        .fut-ovr {
-            position: absolute;
-            top: 8px;
-            left: 10px;
-            font-family: var(--font-title);
-            font-size: 1.8rem;
-            color: var(--vip-gold);
-            line-height: 1;
-        }
-
-        .fut-pos {
-            position: absolute;
-            top: 32px;
-            left: 10px;
-            font-family: var(--font-sub);
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        .fut-img {
-            width: 90px;
-            height: 90px;
-            object-fit: contain;
-            margin-top: 15px;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
-        }
-
-        .fut-name {
-            font-family: var(--font-sub);
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #fff;
-            text-transform: uppercase;
-            margin-top: 5px;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-        }
-
-        /* FORMS & BUTTONS */
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .form-control {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 0.7rem 1rem;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-        }
-
-        .form-control:focus {
-            border-color: var(--neon-green);
-            box-shadow: 0 0 10px rgba(0,255,135,0.2);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, var(--neon-green), #00b359);
-            color: #000;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            font-family: var(--font-sub);
-            font-size: 1.1rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .btn:hover {
-            filter: brightness(1.1);
-            box-shadow: 0 0 15px rgba(0,255,135,0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-        }
-
-        .btn-danger {
-            background: var(--danger-red);
-            color: #fff;
-        }
-
-        /* MODAL */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(8px);
-            z-index: 2000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-card {
+        /* CAMPO DRAFT TÁTICO */
+        .draft-pitch-container {
             background: var(--bg-card);
-            border: 1px solid var(--border-glow);
             border-radius: 20px;
-            width: 100%;
-            max-width: 550px;
-            padding: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
-        /* TACTICAL BOARD */
         .tactical-board {
-            height: 380px;
-            background: #122b1a;
-            border: 2px solid rgba(255,255,255,0.1);
+            height: 400px;
+            background: linear-gradient(135deg, #1b4d2e 0%, #11331e 100%);
+            border: 2px solid rgba(255,255,255,0.2);
             border-radius: 12px;
             position: relative;
-            margin-top: 1rem;
+            overflow: hidden;
         }
 
         .tactical-node {
-            width: 36px;
-            height: 36px;
-            background: var(--neon-green);
-            color: #000;
+            width: 44px; height: 44px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid var(--neon-green);
+            color: #fff;
             border-radius: 50%;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             position: absolute;
-            cursor: move;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             transform: translate(-50%, -50%);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
         }
 
-        .media-input-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
+        /* BOTÕES E FORMULÁRIOS */
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+        .form-group label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600; }
+        .form-control { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.7rem 1rem; color: #fff; font-size: 1rem; outline: none; }
+        .form-control:focus { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,135,0.2); }
+
+        .btn {
+            background: linear-gradient(135deg, var(--neon-green), #00b359);
+            color: #000; border: none; padding: 0.8rem 1.5rem;
+            font-family: var(--font-sub); font-size: 1.1rem; font-weight: 700;
+            border-radius: 8px; cursor: pointer; text-transform: uppercase;
+            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .btn:hover { filter: brightness(1.1); box-shadow: 0 0 15px rgba(0,255,135,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn-danger { background: var(--danger-red); color: #fff; }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            z-index: 2000; display: none; justify-content: center; align-items: center; padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 20px;
+            width: 100%; max-width: 550px; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
 
         .file-upload-btn {
-            background: rgba(255,255,255,0.1);
-            border: 1px dashed rgba(255,255,255,0.3);
-            padding: 0.6rem;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            width: 100%;
+            background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3);
+            padding: 0.6rem; border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.85rem; color: var(--text-muted); width: 100%; display: block;
         }
-
-        .file-upload-btn:hover {
-            border-color: var(--neon-green);
-            color: #fff;
-        }
+        .file-upload-btn:hover { border-color: var(--neon-green); color: #fff; }
     </style>
 </head>
 <body>
 
+    <!-- MODAL DE CADASTRO OBRIGATÓRIO DE TÉCNICO -->
+    <div class="modal-overlay active" id="modal-register-user" style="backdrop-filter: blur(15px);">
+        <div class="modal-card" style="text-align: center; border: 2px solid var(--neon-green);">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚽</div>
+            <h2 style="font-family: var(--font-title); font-size: 2.8rem; color: #fff; margin-bottom: 0.5rem;">BEM-VINDO AO STARS SIMULATOR</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Para começar a gerenciar sua carreira e seus clubes, cadastre o seu nome de Técnico:</p>
+            <div class="form-group" style="text-align: left;">
+                <label>Nome do Técnico</label>
+                <input type="text" id="input-coach-name" class="form-control" placeholder="Ex: Abel Ferreira, Guardiola..." autofocus>
+            </div>
+            <div id="register-error" style="color: var(--danger-red); font-size: 0.9rem; margin-bottom: 1rem; display: none;"></div>
+            <button class="btn" style="width: 100%; padding: 1rem;" onclick="registerCoach()">ACESSAR O JOGO</button>
+        </div>
+    </div>
+
+    <!-- ANIMAÇÃO DE GOL OVERLAY -->
+    <div class="goal-overlay" id="goal-animation-overlay">
+        <div class="goal-card-anim">
+            <h1 class="goal-title-anim">⚽ GOL! ⚽</h1>
+            <div id="goal-scorer-info" style="font-family: var(--font-sub); font-size: 1.8rem; font-weight: 700; color: #fff;"></div>
+        </div>
+    </div>
+
     <header>
         <div class="logo-container">
-            <span style="font-size:2rem">⚽</span>
+            <span style="font-size:2rem">⚡</span>
             <div class="logo-title">STARS SIMULATOR</div>
         </div>
         <nav>
@@ -571,12 +537,11 @@
             <button class="nav-btn" onclick="switchTab('tab-draft')">Draft</button>
             <button class="nav-btn" onclick="switchTab('tab-teams')">Times</button>
             <button class="nav-btn" onclick="switchTab('tab-players')">Atletas</button>
-            <button class="nav-btn" onclick="switchTab('tab-import')">Importar</button>
             <button class="nav-btn" onclick="switchTab('tab-logs')">Logs</button>
         </nav>
-        <div class="user-badge" onclick="openUserModal()">
+        <div class="user-badge" title="Técnico Atual">
             <span>👤</span>
-            <span id="current-user-display" style="font-weight:700">Técnico Padrão</span>
+            <span id="current-user-display" style="font-weight:700">Técnico</span>
         </div>
     </header>
 
@@ -584,8 +549,8 @@
         <!-- TAB: INÍCIO (VITRINE) -->
         <section id="tab-home" class="tab-content active">
             <div class="hero-banner">
-                <div class="hero-title">BEM-VINDO AO STARS SIMULATOR</div>
-                <div class="hero-sub">Monte seu elenco dos sonhos, gerencie suas táticas e acompanhe as partidas em tempo real no simulador interativo!</div>
+                <div class="hero-title">O SIMULADOR DEFINITIVO DE FUTEBOL</div>
+                <div class="hero-sub">Construa seus clubes, escale até 30 atletas por elenco, domine as táticas em campo e viva a emoção das partidas em tempo real.</div>
                 <div style="display:flex; gap:1rem;">
                     <button class="btn" onclick="switchTab('tab-match')">🚀 Partida Rápida</button>
                     <button class="btn btn-secondary" onclick="switchTab('tab-draft')">🎴 Iniciar Draft</button>
@@ -625,8 +590,8 @@
                         <div style="display:flex; gap:0.5rem; align-items:center;">
                             <label style="font-size:0.85rem; color:var(--text-muted)">VELOCIDADE:</label>
                             <select id="sim-speed" class="form-control" style="padding:0.3rem 0.6rem">
-                                <option value="2000">Super Lento</option>
-                                <option value="1200">Lento</option>
+                                <option value="2500">Super Lento</option>
+                                <option value="1500">Lento</option>
                                 <option value="800" selected>Normal</option>
                                 <option value="400">Rápido</option>
                                 <option value="150">Super Rápido</option>
@@ -655,23 +620,30 @@
                         </div>
                     </div>
 
+                    <!-- CAMPO 2D REALISTA -->
                     <div class="pitch-2d" id="pitch-canvas">
-                        <div class="pitch-lines"></div>
-                        <div class="pitch-center-line"></div>
-                        <div class="pitch-center-circle"></div>
+                        <div class="grass-stripes"></div>
+                        <div class="pitch-lines-box">
+                            <div class="center-line"></div>
+                            <div class="center-circle"></div>
+                            <div class="penalty-area-left"></div>
+                            <div class="penalty-area-right"></div>
+                            <div class="goal-left"></div>
+                            <div class="goal-right"></div>
+                        </div>
                         <div class="ball" id="match-ball"></div>
-                        <div class="attack-indicator" id="attack-tag" style="left:20px">ATAQUE MANDANTE</div>
+                        <div class="attack-indicator" id="attack-tag" style="left:25px">ATAQUE MANDANTE</div>
                     </div>
 
-                    <div style="display:flex; justify-content:space-between;">
-                        <button class="btn btn-secondary" onclick="openSubModal('home')">🔄 Sub. Mandante (<span id="home-subs-left">5</span>)</button>
-                        <button class="btn btn-secondary" onclick="openSubModal('away')">🔄 Sub. Visitante (<span id="away-subs-left">5</span>)</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <button class="btn btn-secondary" onclick="openSubModal('home')">🔄 Sub. Mandante (Pausas: <span id="home-pauses-left">3</span> | Trocas: <span id="home-subs-left">5</span>)</button>
+                        <button class="btn btn-secondary" onclick="openSubModal('away')">🔄 Sub. Visitante (Pausas: <span id="away-pauses-left">3</span> | Trocas: <span id="away-subs-left">5</span>)</button>
                     </div>
                 </div>
 
                 <div class="ticker-box">
                     <div style="font-family:var(--font-title); font-size:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem">
-                        NARRAÇÃO E EVENTOS
+                        CENTRAL DE EVENTOS E NARRAÇÃO
                     </div>
                     <div class="ticker-list" id="match-ticker">
                         <div class="ticker-item"><span>📢</span> Aguardando início da partida...</div>
@@ -686,13 +658,19 @@
                 <h2 style="font-family:var(--font-title); font-size:2.5rem">DRAFT DE ELENCO</h2>
                 <button class="btn" onclick="startNewDraft()">✨ Novo Draft</button>
             </div>
-            <div id="draft-pick-area" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:1rem; margin-bottom:2rem;">
-                <!-- 5 Opções -->
+            <div id="draft-pick-container">
+                <div id="draft-pick-area" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:1rem; margin-bottom:2rem;"></div>
             </div>
 
-            <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">SEU ESCALAÇÃO NO DRAFT</h3>
-            <div style="display:flex; gap:1rem; flex-wrap:wrap" id="draft-squad-display">
-                <!-- Titulares e Reservas do Draft -->
+            <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">CAMPO TÁTICO E RESERVAS DO DRAFT</h3>
+            <div class="draft-pitch-container">
+                <div class="tactical-board" id="draft-tactical-pitch">
+                    <div class="grass-stripes"></div>
+                </div>
+                <div style="margin-top:1rem;">
+                    <h4 style="color:var(--text-muted); font-family:var(--font-sub); margin-bottom:0.5rem;">BANCO DE RESERVAS (<span id="draft-bench-count">0</span>/7)</h4>
+                    <div id="draft-bench-display" style="display:flex; gap:0.8rem; flex-wrap:wrap;"></div>
+                </div>
             </div>
         </section>
 
@@ -700,7 +678,7 @@
         <section id="tab-teams" class="tab-content">
             <div style="display:grid; grid-template-columns: 350px 1fr; gap:1.5rem;">
                 <div class="pitch-card">
-                    <h3 style="font-family:var(--font-title); font-size:1.8rem">NOVO CLUB</h3>
+                    <h3 style="font-family:var(--font-title); font-size:1.8rem" id="team-form-title">GERENCIAR CLUBE</h3>
                     <form id="form-team" onsubmit="saveTeam(event)">
                         <input type="hidden" id="team-id">
                         <div class="form-group">
@@ -712,11 +690,11 @@
                             <input type="text" id="team-code" class="form-control" maxlength="3" required>
                         </div>
                         <div class="form-group">
-                            <label>Logo do Clube</label>
-                            <input type="text" id="team-logo-url" class="form-control" placeholder="URL da Imagem">
+                            <label>Logo do Clube (URL ou Arquivo)</label>
+                            <input type="text" id="team-logo-url" class="form-control" placeholder="https://...">
                             <div style="margin-top:0.4rem">
                                 <label class="file-upload-btn">
-                                    📁 Fazer Upload de Foto Local
+                                    📁 Upload Logo Local
                                     <input type="file" accept="image/*" style="display:none" onchange="handleFileUpload(event, 'team-logo-url')">
                                 </label>
                             </div>
@@ -729,15 +707,16 @@
                                 <option value="3-5-2">3-5-2</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn" style="width:100%">Salvar Clube</button>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button type="submit" class="btn" style="flex:1">Salvar Clube</button>
+                            <button type="button" class="btn btn-secondary" id="cancel-team-edit" onclick="resetTeamForm()" style="display:none">Cancelar</button>
+                        </div>
                     </form>
                 </div>
 
                 <div>
                     <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">CLUBES CADASTRADOS</h3>
-                    <div id="teams-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:1rem;">
-                        <!-- Cards dos Times -->
-                    </div>
+                    <div id="teams-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;"></div>
                 </div>
             </div>
         </section>
@@ -746,7 +725,7 @@
         <section id="tab-players" class="tab-content">
             <div style="display:grid; grid-template-columns: 350px 1fr; gap:1.5rem;">
                 <div class="pitch-card">
-                    <h3 style="font-family:var(--font-title); font-size:1.8rem">CADASTRAR ATLETA</h3>
+                    <h3 style="font-family:var(--font-title); font-size:1.8rem" id="player-form-title">CADASTRAR ATLETA</h3>
                     <form id="form-player" onsubmit="savePlayer(event)">
                         <input type="hidden" id="player-id">
                         <div class="form-group">
@@ -754,12 +733,12 @@
                             <input type="text" id="player-name" class="form-control" required>
                         </div>
                         <div class="form-group">
-                            <label>Clube</label>
+                            <label>Clube (Máx 30 atletas)</label>
                             <select id="player-team-select" class="form-control" required></select>
                         </div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem">
                             <div class="form-group">
-                                <label>Overall</label>
+                                <label>Overall (40-99)</label>
                                 <input type="number" id="player-ovr" class="form-control" min="40" max="99" value="75" required>
                             </div>
                             <div class="form-group">
@@ -775,49 +754,47 @@
                                 </select>
                             </div>
                         </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem">
+                            <div class="form-group">
+                                <label>Perna Boa</label>
+                                <select id="player-foot" class="form-control">
+                                    <option value="Direita">Direita</option>
+                                    <option value="Esquerda">Esquerda</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Drible (1-5★)</label>
+                                <input type="number" id="player-skills" class="form-control" min="1" max="5" value="3" required>
+                            </div>
+                        </div>
                         <div class="form-group">
-                            <label>Foto do Atleta (3x4 Fundo Transparente)</label>
-                            <input type="text" id="player-photo-url" class="form-control" placeholder="URL da Imagem">
+                            <label>Foto do Atleta (3x4)</label>
+                            <input type="text" id="player-photo-url" class="form-control" placeholder="https://...">
                             <div style="margin-top:0.4rem">
                                 <label class="file-upload-btn">
-                                    📁 Upload Foto do Jogador
+                                    📁 Upload Foto Local
                                     <input type="file" accept="image/*" style="display:none" onchange="handleFileUpload(event, 'player-photo-url')">
                                 </label>
                             </div>
                         </div>
-                        <button type="submit" class="btn" style="width:100%">Salvar Atleta</button>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button type="submit" class="btn" style="flex:1">Salvar Atleta</button>
+                            <button type="button" class="btn btn-secondary" id="cancel-player-edit" onclick="resetPlayerForm()" style="display:none">Cancelar</button>
+                        </div>
                     </form>
                 </div>
 
                 <div>
                     <h3 style="font-family:var(--font-title); font-size:1.8rem; margin-bottom:1rem">BANCO DE ATLETAS</h3>
-                    <div id="players-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:1rem;">
-                        <!-- Cards FUT dos Atletas -->
-                    </div>
+                    <div id="players-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:1rem;"></div>
                 </div>
-            </div>
-        </section>
-
-        <!-- TAB: IMPORTAR TRANSFERMARKT -->
-        <section id="tab-import" class="tab-content">
-            <div class="pitch-card" style="max-width:700px; margin:0 auto;">
-                <h2 style="font-family:var(--font-title); font-size:2.2rem">IMPORTADOR TRANSFERMARKT</h2>
-                <p style="color:var(--text-muted); margin-bottom:1.5rem">Cole o link de um clube do Transfermarkt para importar os atletas com nomes e fotos automaticamente!</p>
-                <div class="form-group">
-                    <label>URL do Clube no Transfermarkt</label>
-                    <input type="text" id="import-url" class="form-control" placeholder="https://www.transfermarkt.com.br/corinthians-sao-paulo/startseite/verein/199">
-                </div>
-                <button class="btn" onclick="importFromTransfermarkt()">⚡ Importar Clube e Atletas</button>
-                <div id="import-log" style="margin-top:1rem; color:var(--neon-green); font-size:0.9rem"></div>
             </div>
         </section>
 
         <!-- TAB: LOGS -->
         <section id="tab-logs" class="tab-content">
             <h2 style="font-family:var(--font-title); font-size:2.2rem; margin-bottom:1rem">LOGS DE ATIVIDADE DO SISTEMA</h2>
-            <div id="audit-logs-list" class="ticker-box" style="height:auto">
-                <!-- Logs do sistema -->
-            </div>
+            <div id="audit-logs-list" class="ticker-box" style="height:auto"></div>
         </section>
     </main>
 
@@ -831,31 +808,35 @@
         </div>
     </div>
 
-    <!-- MODAL SUB -->
+    <!-- MODAL SUBSTITUIÇÕES -->
     <div class="modal-overlay" id="modal-sub">
         <div class="modal-card">
-            <h2 style="font-family:var(--font-title); font-size:2rem">SUBSTITUIÇÃO DE JOGADOR</h2>
+            <h2 style="font-family:var(--font-title); font-size:2rem">REALIZAR SUBSTITUIÇÃO</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem">A partida está pausada. Escolha quem sai e quem entra:</p>
             <div class="form-group">
-                <label>Jogador a Sair</label>
+                <label>Jogador em Campo (Sai)</label>
                 <select id="sub-out-select" class="form-control"></select>
             </div>
             <div class="form-group">
-                <label>Jogador a Entrar</label>
+                <label>Jogador no Banco (Entra)</label>
                 <select id="sub-in-select" class="form-control"></select>
             </div>
             <div style="display:flex; gap:1rem; margin-top:1.5rem">
-                <button class="btn" onclick="confirmSub()">Confirmar Troca</button>
-                <button class="btn btn-secondary" onclick="closeSubModal()">Cancelar</button>
+                <button class="btn" onclick="confirmSub()">Confirmar Substituição</button>
+                <button class="btn btn-secondary" onclick="closeSubModal()">Fechar</button>
             </div>
         </div>
     </div>
 
     <script>
         // ESTADO GLOBAL DA APLICAÇÃO
-        let currentUser = "Técnico Padrão";
+        let currentUser = "";
         let teams = JSON.parse(localStorage.getItem('stars_teams')) || [];
         let players = JSON.parse(localStorage.getItem('stars_players')) || [];
         let logs = JSON.parse(localStorage.getItem('stars_logs')) || [];
+
+        let editingTeamId = null;
+        let editingPlayerId = null;
 
         let matchState = {
             running: false,
@@ -872,6 +853,16 @@
             subTeamTarget: null
         };
 
+        let draftState = {
+            active: false,
+            starters: [],
+            bench: [],
+            currentPosIndex: 0,
+            positions: ['GK', 'LB', 'CB', 'CB', 'RB', 'CM', 'CM', 'CAM', 'ST', 'ST', 'LW']
+        };
+
+        const PROFANE_WORDS = ['merda', 'porra', 'caralho', 'puta', 'cu', 'bosta', 'fdp', 'pqp', 'fuck', 'shit', 'asshole'];
+
         // INICIALIZAÇÃO
         window.onload = () => {
             updateDashboardStats();
@@ -880,6 +871,32 @@
             populateTeamDropdowns();
             renderLogs();
         };
+
+        // CADASTRO OBRIGATÓRIO DE TÉCNICO & VALIDAÇÕES
+        function registerCoach() {
+            const inputName = document.getElementById('input-coach-name').value.trim();
+            const errorBox = document.getElementById('register-error');
+
+            if (!inputName) {
+                errorBox.innerText = "Por favor, insira um nome válido para o técnico.";
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            // Verificar se contém palavras ofensivas
+            const lowerName = inputName.toLowerCase();
+            const hasProfanity = PROFANE_WORDS.some(word => lowerName.includes(word));
+            if (hasProfanity) {
+                errorBox.innerText = "🚨 Nome ofensivo não permitido! Escolha outro nome.";
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            currentUser = inputName;
+            document.getElementById('current-user-display').innerText = currentUser;
+            document.getElementById('modal-register-user').classList.remove('active');
+            addAuditLog(`Técnico registrado no sistema: ${currentUser}`);
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -895,7 +912,7 @@
         }
 
         function addAuditLog(msg, type='info') {
-            const entry = { user: currentUser, text: msg, date: new Date().toLocaleTimeString(), type };
+            const entry = { user: currentUser || 'Sistema', text: msg, date: new Date().toLocaleTimeString(), type };
             logs.unshift(entry);
             localStorage.setItem('stars_logs', JSON.stringify(logs));
             renderLogs();
@@ -907,14 +924,12 @@
             container.innerHTML = logs.map(l => `
                 <div class="ticker-item">
                     <span>📝</span>
-                    <div>
-                        <strong>[${l.date}] ${l.user}:</strong> ${l.text}
-                    </div>
+                    <div><strong>[${l.date}] ${l.user}:</strong> ${l.text}</div>
                 </div>
             `).join('');
         }
 
-        // UPLOAD DE IMAGEM LOCAL PARA BASE64
+        // UPLOAD DE IMAGEM LOCAL
         function handleFileUpload(event, targetInputId) {
             const file = event.target.files[0];
             if (file) {
@@ -926,10 +941,10 @@
             }
         }
 
-        // CADASTRO DE TIMES
+        // GERENCIAMENTO DE TIMES
         function saveTeam(e) {
             e.preventDefault();
-            const id = document.getElementById('team-id').value || Date.now().toString();
+            const id = editingTeamId || Date.now().toString();
             const teamData = {
                 id,
                 name: document.getElementById('team-name').value,
@@ -940,54 +955,123 @@
             };
 
             const idx = teams.findIndex(t => t.id === id);
-            if(idx >= 0) teams[idx] = teamData;
-            else teams.push(teamData);
+            if(idx >= 0) {
+                teams[idx] = teamData;
+                addAuditLog(`Editou o clube: ${teamData.name}`);
+            } else {
+                teams.push(teamData);
+                addAuditLog(`Criou o clube: ${teamData.name}`);
+            }
 
             localStorage.setItem('stars_teams', JSON.stringify(teams));
-            addAuditLog(`Salvou o clube: ${teamData.name}`);
-            document.getElementById('form-team').reset();
+            resetTeamForm();
             renderTeams();
             populateTeamDropdowns();
             updateDashboardStats();
         }
 
-        function renderTeams() {
-            const grid = document.getElementById('teams-grid');
-            grid.innerHTML = teams.map(t => `
-                <div class="pitch-card" style="text-align:center;">
-                    <img src="${t.logo}" style="width:60px; height:60px; object-fit:contain; margin:0 auto 0.5rem">
-                    <div style="font-weight:700; font-family:var(--font-sub); font-size:1.2rem">${t.name}</div>
-                    <div style="color:var(--text-muted); font-size:0.85rem">${t.code} • ${t.formation}</div>
-                </div>
-            `).join('');
+        function editTeam(id) {
+            const t = teams.find(item => item.id === id);
+            if(!t) return;
+            editingTeamId = t.id;
+            document.getElementById('team-id').value = t.id;
+            document.getElementById('team-name').value = t.name;
+            document.getElementById('team-code').value = t.code;
+            document.getElementById('team-logo-url').value = t.logo;
+            document.getElementById('team-formation').value = t.formation;
+            document.getElementById('team-form-title').innerText = "EDITAR CLUBE";
+            document.getElementById('cancel-team-edit').style.display = 'inline-block';
         }
 
-        // CADASTRO DE ATLETAS
+        function resetTeamForm() {
+            editingTeamId = null;
+            document.getElementById('form-team').reset();
+            document.getElementById('team-form-title').innerText = "GERENCIAR CLUBE";
+            document.getElementById('cancel-team-edit').style.display = 'none';
+        }
+
+        function renderTeams() {
+            const grid = document.getElementById('teams-grid');
+            grid.innerHTML = teams.map(t => {
+                const teamPlayersCount = players.filter(p => p.teamId === t.id).length;
+                return `
+                    <div class="pitch-card" style="text-align:center;">
+                        <img src="${t.logo}" style="width:60px; height:60px; object-fit:contain; margin:0 auto 0.5rem">
+                        <div style="font-weight:700; font-family:var(--font-sub); font-size:1.2rem">${t.name} (${t.code})</div>
+                        <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:0.5rem">${teamPlayersCount}/30 Atletas • ${t.formation}</div>
+                        <button class="btn btn-secondary" style="padding:0.3rem 0.8rem; font-size:0.85rem;" onclick="editTeam('${t.id}')">✏️ Editar</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // GERENCIAMENTO DE ATLETAS (LIMITE DE 30 POR TIME)
         function savePlayer(e) {
             e.preventDefault();
-            const id = document.getElementById('player-id').value || Date.now().toString();
+            const teamId = document.getElementById('player-team-select').value;
+            const currentTeamPlayers = players.filter(p => p.teamId === teamId && p.id !== editingPlayerId);
+            
+            if (currentTeamPlayers.length >= 30) {
+                alert("🚨 Este clube já atingiu o limite máximo de 30 atletas cadastrados!");
+                return;
+            }
+
+            const id = editingPlayerId || Date.now().toString();
             const playerData = {
                 id,
                 name: document.getElementById('player-name').value,
-                teamId: document.getElementById('player-team-select').value,
+                teamId,
                 ovr: parseInt(document.getElementById('player-ovr').value),
                 pos: document.getElementById('player-pos').value,
+                foot: document.getElementById('player-foot').value,
+                skills: parseInt(document.getElementById('player-skills').value),
                 photo: document.getElementById('player-photo-url').value || 'https://via.placeholder.com/90',
                 author: currentUser
             };
 
-            players.push(playerData);
+            const idx = players.findIndex(p => p.id === id);
+            if(idx >= 0) {
+                players[idx] = playerData;
+                addAuditLog(`Editou o atleta: ${playerData.name}`);
+            } else {
+                players.push(playerData);
+                addAuditLog(`Cadastrou o atleta: ${playerData.name}`);
+            }
+
             localStorage.setItem('stars_players', JSON.stringify(players));
-            addAuditLog(`Cadastrou o jogador: ${playerData.name}`);
-            document.getElementById('form-player').reset();
+            resetPlayerForm();
             renderPlayers();
+            renderTeams();
             updateDashboardStats();
+        }
+
+        function editPlayer(id) {
+            const p = players.find(item => item.id === id);
+            if(!p) return;
+            editingPlayerId = p.id;
+            document.getElementById('player-id').value = p.id;
+            document.getElementById('player-name').value = p.name;
+            document.getElementById('player-team-select').value = p.teamId;
+            document.getElementById('player-ovr').value = p.ovr;
+            document.getElementById('player-pos').value = p.pos;
+            document.getElementById('player-foot').value = p.foot || 'Direita';
+            document.getElementById('player-skills').value = p.skills || 3;
+            document.getElementById('player-photo-url').value = p.photo;
+            document.getElementById('player-form-title').innerText = "EDITAR ATLETA";
+            document.getElementById('cancel-player-edit').style.display = 'inline-block';
+        }
+
+        function resetPlayerForm() {
+            editingPlayerId = null;
+            document.getElementById('form-player').reset();
+            document.getElementById('player-form-title').innerText = "CADASTRAR ATLETA";
+            document.getElementById('cancel-player-edit').style.display = 'none';
         }
 
         function renderPlayers() {
             const grid = document.getElementById('players-grid');
             grid.innerHTML = players.map(p => `
-                <div class="fut-card">
+                <div class="fut-card" onclick="editPlayer('${p.id}')" title="Clique para editar">
                     <div class="fut-ovr">${p.ovr}</div>
                     <div class="fut-pos">${p.pos}</div>
                     <img src="${p.photo}" class="fut-img">
@@ -997,10 +1081,14 @@
         }
 
         function populateTeamDropdowns() {
-            const options = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-            document.getElementById('player-team-select').innerHTML = options;
-            document.getElementById('select-home-team').innerHTML = options;
-            document.getElementById('select-away-team').innerHTML = options;
+            const options = teams.map(t => `<option value="${t.id}">${t.name} (${t.code})</option>`).join('');
+            const selPlayer = document.getElementById('player-team-select');
+            const selHome = document.getElementById('select-home-team');
+            const selAway = document.getElementById('select-away-team');
+            
+            if(selPlayer) selPlayer.innerHTML = options;
+            if(selHome) selHome.innerHTML = options;
+            if(selAway) selAway.innerHTML = options;
             updateMatchTeams();
         }
 
@@ -1014,58 +1102,12 @@
             if(matchState.awayTeam) document.getElementById('match-away-logo').src = matchState.awayTeam.logo;
         }
 
-        // IMPORTADOR TRANSFERMARKT COM PROXY CORS
-        async function importFromTransfermarkt() {
-            const url = document.getElementById('import-url').value;
-            const log = document.getElementById('import-log');
-            if(!url) return alert('Insira um link do Transfermarkt!');
-
-            log.innerText = "⏳ Acessando Transfermarkt via Proxy...";
-            try {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const res = await fetch(proxyUrl);
-                const data = await res.json();
-                
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data.contents, 'text/html');
-
-                const clubName = doc.querySelector('h1.data-header__headline-wrapper')?.innerText.trim() || "Clube Importado";
-                const clubLogo = doc.querySelector('.data-header__profile-container img')?.src || 'https://via.placeholder.com/100';
-
-                const newTeam = { id: Date.now().toString(), name: clubName, code: clubName.substring(0,3).toUpperCase(), logo: clubLogo, formation: '4-3-3', author: currentUser };
-                teams.push(newTeam);
-
-                const rows = doc.querySelectorAll('table.items > tbody > tr');
-                let count = 0;
-                rows.forEach(r => {
-                    const name = r.querySelector('td.hauptlink a')?.innerText.trim();
-                    const photo = r.querySelector('td img.inline-table')?.src;
-                    if(name) {
-                        players.push({
-                            id: (Date.now() + count).toString(),
-                            name,
-                            teamId: newTeam.id,
-                            ovr: Math.floor(Math.random() * 15) + 75,
-                            pos: 'CM',
-                            photo: photo || 'https://via.placeholder.com/90'
-                        });
-                        count++;
-                    }
-                });
-
-                localStorage.setItem('stars_teams', JSON.stringify(teams));
-                localStorage.setItem('stars_players', JSON.stringify(players));
-                log.innerText = `✅ Sucesso! Importado o ${clubName} com ${count} atletas.`;
-                renderTeams();
-                renderPlayers();
-                populateTeamDropdowns();
-            } catch(e) {
-                log.innerText = "❌ Erro ao importar. Certifique-se de que o link é de um clube do Transfermarkt.";
-            }
-        }
-
         // MOTOR DE SIMULAÇÃO DE PARTIDA
         function toggleSimulation() {
+            if(!matchState.homeTeam || !matchState.awayTeam) {
+                alert("Selecione os dois times para iniciar a partida!");
+                return;
+            }
             if(matchState.running) return;
             matchState.running = true;
             document.getElementById('btn-start-sim').style.display = 'none';
@@ -1086,34 +1128,45 @@
             matchState.time += 1;
             document.getElementById('match-time').innerText = `${String(matchState.time).padStart(2,'0')}:00`;
 
-            // Movimenta a bola no campo 2D
+            // Movimentação realista no campo 2D
             const ball = document.getElementById('match-ball');
-            const randX = Math.random() * 80 + 10;
+            const randX = Math.random() * 84 + 8;
             const randY = Math.random() * 80 + 10;
             ball.style.left = `${randX}%`;
             ball.style.top = `${randY}%`;
 
-            // Lógica de Eventos Aleatórios
             const rand = Math.random();
-            if(rand < 0.05) {
-                // Gol
+            if(rand < 0.04) {
+                // GOL
                 const isHome = Math.random() > 0.5;
                 if(isHome) matchState.scoreHome++; else matchState.scoreAway++;
                 document.getElementById('score-home').innerText = matchState.scoreHome;
                 document.getElementById('score-away').innerText = matchState.scoreAway;
                 const teamName = isHome ? matchState.homeTeam.name : matchState.awayTeam.name;
+                
+                triggerGoalAnimation(teamName);
                 addTicker(`⚽ GOL DO ${teamName.toUpperCase()}! (${matchState.time}')`);
-            } else if(rand < 0.07) {
-                // Pênalti
+            } else if(rand < 0.055) {
+                // Pênalti Raro
                 pauseSimulation();
+                populatePenaltyTaker();
                 document.getElementById('modal-penalty').classList.add('active');
             }
 
             if(matchState.time >= 90) {
                 pauseSimulation();
-                addTicker(`🏁 FIM DE JOGO! Placar Final: ${matchState.scoreHome} x ${matchState.scoreAway}`);
-                addAuditLog(`Partida encerrada: ${matchState.homeTeam.name} ${matchState.scoreHome} x ${matchState.scoreAway} ${matchState.awayTeam.name}`, 'match');
+                addTicker(`🏁 FIM DE JOGO! Placar Final: ${matchState.homeTeam.name} ${matchState.scoreHome} x ${matchState.scoreAway} ${matchState.awayTeam.name}`);
+                addAuditLog(`Partida realizada: ${matchState.homeTeam.name} ${matchState.scoreHome} x ${matchState.scoreAway} ${matchState.awayTeam.name}`, 'match');
             }
+        }
+
+        function triggerGoalAnimation(teamName) {
+            document.getElementById('goal-scorer-info').innerText = `Equipe: ${teamName}`;
+            const overlay = document.getElementById('goal-animation-overlay');
+            overlay.classList.add('active');
+            setTimeout(() => {
+                overlay.classList.remove('active');
+            }, 2200);
         }
 
         function addTicker(text) {
@@ -1121,23 +1174,67 @@
             list.innerHTML = `<div class="ticker-item"><span>⏱️</span> ${text}</div>` + list.innerHTML;
         }
 
+        function populatePenaltyTaker() {
+            const team = Math.random() > 0.5 ? matchState.homeTeam : matchState.awayTeam;
+            const teamPlayers = players.filter(p => p.teamId === team.id);
+            const sel = document.getElementById('penalty-taker-select');
+            sel.innerHTML = teamPlayers.length > 0 
+                ? teamPlayers.map(p => `<option value="${p.name}">${p.name} (OVR: ${p.ovr})</option>`).join('')
+                : `<option value="Craque">Craque do Time</option>`;
+        }
+
         function executePenalty() {
             document.getElementById('modal-penalty').classList.remove('active');
-            const isHome = Math.random() > 0.5;
+            const isHome = Math.random() > 0.3; // 70% de chance de converter pênalti
             if(isHome) matchState.scoreHome++; else matchState.scoreAway++;
             document.getElementById('score-home').innerText = matchState.scoreHome;
             document.getElementById('score-away').innerText = matchState.scoreAway;
-            addTicker(`⚽ GOL DE PÊNALTI CONVERTIDO! (${matchState.time}')`);
+            addTicker(`⚽ Pênalti cobrado com sucesso! (${matchState.time}')`);
             toggleSimulation();
         }
 
-        // SUBSTITUIÇÕES COM PAUSA
+        // SISTEMA DE SUBSTITUIÇÕES CORRIGIDO
         function openSubModal(teamSide) {
             if(matchState.running) {
                 alert("Você precisa pausar a partida para realizar substituições!");
                 return;
             }
+            
+            const team = teamSide === 'home' ? matchState.homeTeam : matchState.awayTeam;
+            if(!team) {
+                alert("Selecione os times antes!");
+                return;
+            }
+
+            if(teamSide === 'home' && matchState.homePausesLeft <= 0) {
+                alert("Limite de 3 pausas esgotado para o mandante!");
+                return;
+            }
+            if(teamSide === 'away' && matchState.awayPausesLeft <= 0) {
+                alert("Limite de 3 pausas esgotado para o visitante!");
+                return;
+            }
+
+            if(teamSide === 'home' && matchState.homeSubsLeft <= 0) {
+                alert("Limite de 5 substituições esgotado para o mandante!");
+                return;
+            }
+            if(teamSide === 'away' && matchState.awaySubsLeft <= 0) {
+                alert("Limite de 5 substituições esgotado para o visitante!");
+                return;
+            }
+
             matchState.subTeamTarget = teamSide;
+            const teamPlayers = players.filter(p => p.teamId === team.id);
+
+            document.getElementById('sub-out-select').innerHTML = teamPlayers.length > 0 
+                ? teamPlayers.map(p => `<option value="${p.id}">${p.name} (${p.pos} - ${p.ovr})</option>`).join('')
+                : `<option value="">Nenhum atleta cadastrado</option>`;
+
+            document.getElementById('sub-in-select').innerHTML = teamPlayers.length > 0 
+                ? teamPlayers.map(p => `<option value="${p.id}">${p.name} (${p.pos} - ${p.ovr})</option>`).join('')
+                : `<option value="">Nenhum atleta cadastrado</option>`;
+
             document.getElementById('modal-sub').classList.add('active');
         }
 
@@ -1146,14 +1243,116 @@
         }
 
         function confirmSub() {
-            if(matchState.subTeamTarget === 'home') matchState.homeSubsLeft--;
-            else matchState.awaySubsLeft--;
+            if(matchState.subTeamTarget === 'home') {
+                matchState.homePausesLeft--;
+                matchState.homeSubsLeft--;
+                document.getElementById('home-pauses-left').innerText = matchState.homePausesLeft;
+                document.getElementById('home-subs-left').innerText = matchState.homeSubsLeft;
+            } else {
+                matchState.awayPausesLeft--;
+                matchState.awaySubsLeft--;
+                document.getElementById('away-pauses-left').innerText = matchState.awayPausesLeft;
+                document.getElementById('away-subs-left').innerText = matchState.awaySubsLeft;
+            }
 
-            document.getElementById('home-subs-left').innerText = matchState.homeSubsLeft;
-            document.getElementById('away-subs-left').innerText = matchState.awaySubsLeft;
-
-            addTicker(`🔄 Substituição realizada no time ${matchState.subTeamTarget === 'home' ? matchState.homeTeam.name : matchState.awayTeam.name}`);
+            addTicker(`🔄 Substituição efetuada na equipe ${matchState.subTeamTarget === 'home' ? matchState.homeTeam.name : matchState.awayTeam.name}`);
             closeSubModal();
+        }
+
+        // MODO DRAFT
+        function startNewDraft() {
+            if(players.length < 5) {
+                alert("Cadastre pelo menos 5 atletas no banco de dados para iniciar o Draft!");
+                return;
+            }
+            draftState.starters = [];
+            draftState.bench = [];
+            draftState.currentPosIndex = 0;
+            document.getElementById('draft-tactical-pitch').innerHTML = '<div class="grass-stripes"></div>';
+            document.getElementById('draft-bench-display').innerHTML = '';
+            showNextDraftPick();
+        }
+
+        function showNextDraftPick() {
+            if(draftState.currentPosIndex >= draftState.positions.length) {
+                document.getElementById('draft-pick-area').innerHTML = `<h3 style="color:var(--neon-green)">Draft concluído com sucesso! Elenco pronto.</h3>`;
+                return;
+            }
+
+            const targetPos = draftState.positions[draftState.currentPosIndex];
+            let available = players.filter(p => p.pos === targetPos);
+            if(available.length === 0) available = players; // fallback
+
+            // Embaralhar e pegar até 5
+            const options = available.sort(() => 0.5 - Math.random()).slice(0, 5);
+
+            const container = document.getElementById('draft-pick-area');
+            container.innerHTML = options.map(p => `
+                <div class="fut-card" onclick="selectDraftPlayer('${p.id}', '${targetPos}')">
+                    <div class="fut-ovr">${p.ovr}</div>
+                    <div class="fut-pos">${p.pos}</div>
+                    <img src="${p.photo}" class="fut-img">
+                    <div class="fut-name">${p.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectDraftPlayer(playerId, pos) {
+            const player = players.find(p => p.id === playerId);
+            if(!player) return;
+
+            if(draftState.starters.length < 11) {
+                draftState.starters.push(player);
+                renderDraftTacticalPitch();
+            } else if(draftState.bench.length < 7) {
+                draftState.bench.push(player);
+                renderDraftBench();
+            }
+
+            draftState.currentPosIndex++;
+            showNextDraftPick();
+        }
+
+        function renderDraftTacticalPitch() {
+            const pitch = document.getElementById('draft-tactical-pitch');
+            const coords = [
+                {top: '85%', left: '50%'}, // GK
+                {top: '65%', left: '15%'}, // LB
+                {top: '68%', left: '38%'}, // CB
+                {top: '68%', left: '62%'}, // CB
+                {top: '65%', left: '85%'}, // RB
+                {top: '45%', left: '35%'}, // CM
+                {top: '45%', left: '65%'}, // CM
+                {top: '30%', left: '50%'}, // CAM
+                {top: '15%', left: '20%'}, // ST
+                {top: '15%', left: '80%'}, // ST
+                {top: '30%', left: '15%'}  // LW
+            ];
+
+            let html = '<div class="grass-stripes"></div>';
+            draftState.starters.forEach((p, idx) => {
+                const c = coords[idx] || {top: '50%', left: '50%'};
+                html += `
+                    <div class="tactical-node" style="top: ${c.top}; left: ${c.left};" title="${p.name} (${p.pos})">
+                        <span style="font-size:0.65rem">${p.pos}</span>
+                        <span style="font-size:0.75rem; color:var(--neon-green)">${p.ovr}</span>
+                    </div>
+                `;
+            });
+            pitch.innerHTML = html;
+        }
+
+        function renderDraftBench() {
+            const benchDiv = document.getElementById('draft-bench-display');
+            document.getElementById('draft-bench-count').innerText = draftState.bench.length;
+            benchDiv.innerHTML = draftState.bench.map(p => `
+                <div class="fut-card" style="transform:scale(0.75); margin:-15px;">
+                    <div class="fut-ovr">${p.ovr}</div>
+                    <div class="fut-pos">${p.pos}</div>
+                    <img src="${p.photo}" class="fut-img">
+                    <div class="fut-name">${p.name}</div>
+                </div>
+            `).join('');
         }
     </script>
 </body>
