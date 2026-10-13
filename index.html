@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stars Simulator | EA FC 27 Edition</title>
+    <title>Stars Simulator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,951 +12,1327 @@
             theme: {
                 extend: {
                     colors: {
-                        eafc: {
-                            dark: '#0a0b10',
-                            card: '#12141c',
-                            cardHover: '#1a1d28',
-                            neon: '#00ffcc',
-                            gold: '#ffd700',
-                            accent: '#3b82f6',
-                            danger: '#ef4444',
-                            warning: '#f59e0b',
-                            success: '#10b981'
+                        brand: {
+                            dark: '#0a0d14',
+                            card: '#121824',
+                            accent: '#00ff88',
+                            gold: '#f3ba2f',
+                            border: '#1f293d',
+                            danger: '#ff3b30'
                         }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts & FontAwesome -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Inter:wght@300;400;600;800&display=swap');
+        
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0a0b10;
+            background-color: #06080d;
             color: #f3f4f6;
-            overflow-x: hidden;
+            user-select: none;
         }
-        .glass-panel {
-            background: rgba(18, 20, 28, 0.82);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+
+        .font-teko {
+            font-family: 'Teko', sans-serif;
         }
-        .neon-glow {
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.15);
+
+        /* Goal Overlay Animation */
+        @keyframes goalPop {
+            0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            50% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+            70% { transform: scale(0.95) rotate(-1deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
-        .gold-glow {
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(0,255,136,0.6)); }
+            50% { filter: drop-shadow(0 0 35px rgba(0,255,136,0.9)); }
         }
-        /* Custom scrollbar */
+
+        .animate-goal {
+            animation: goalPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, pulseGlow 1.5s infinite;
+        }
+
+        /* 365Scores Radar Attack Wave */
+        @keyframes attackWaveRight {
+            0% { left: 40%; opacity: 0.2; width: 10%; }
+            50% { opacity: 0.7; }
+            100% { left: 85%; opacity: 0; width: 15%; }
+        }
+
+        @keyframes attackWaveLeft {
+            0% { right: 40%; opacity: 0.2; width: 10%; }
+            50% { opacity: 0.7; }
+            100% { right: 85%; opacity: 0; width: 15%; }
+        }
+
+        .attack-wave-right {
+            position: absolute;
+            top: 10%;
+            height: 80%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,136,0.35), transparent);
+            animation: attackWaveRight 1.8s infinite ease-out;
+            pointer-events: none;
+        }
+
+        .attack-wave-left {
+            position: absolute;
+            top: 10%;
+            height: 80%;
+            background: linear-gradient(-90deg, transparent, rgba(243,186,47,0.35), transparent);
+            animation: attackWaveLeft 1.8s infinite ease-out;
+            pointer-events: none;
+        }
+
+        /* Pitch Grass Styling */
+        .pitch-bg {
+            background: #0d2818;
+            background-image: repeating-linear-gradient(
+                90deg,
+                #0d2818,
+                #0d2818 40px,
+                #11321e 40px,
+                #11321e 80px
+            );
+        }
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #0a0b10;
+            background: #0a0d14;
         }
         ::-webkit-scrollbar-thumb {
             background: #1f293d;
-            border-radius: 3px;
+            border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #00ffcc;
+            background: #00ff88;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col bg-eafc-dark text-gray-100">
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
 
-    <header class="glass-panel sticky top-0 z-50 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-            <div class="bg-gradient-to-tr from-cyan-500 to-emerald-400 p-2.5 rounded-xl text-eafc-dark font-black text-xl tracking-wider shadow-lg flex items-center gap-2">
-                <i class="fa-solid fa-futbol"></i> STARS <span class="text-white text-xs bg-black/50 px-2 py-0.5 rounded">FC27</span>
+    <!-- Top Navigation Bar -->
+    <header class="bg-brand-card border-b border-brand-border sticky top-0 z-40 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-accent to-emerald-600 flex items-center justify-center shadow-lg shadow-brand-accent/20">
+                    <i class="fa-solid font-bold text-lg text-slate-950 fa-star"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-teko font-bold tracking-wider leading-none text-white">STARS <span class="text-brand-accent">SIMULATOR</span></h1>
+                    <p class="text-[10px] text-gray-400 font-semibold tracking-widest uppercase">Futebol Tático & Gestão</p>
+                </div>
             </div>
-            <div class="hidden md:flex items-center space-x-1 text-xs text-gray-400">
-                <span class="px-2 py-1 bg-gray-800/80 rounded-md">Simulador de Partidas</span>
-                <span class="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-md font-semibold">Online v2.7</span>
+
+            <!-- Main Navigation Links -->
+            <nav class="hidden md:flex space-x-1 bg-brand-dark/80 p-1 rounded-xl border border-brand-border">
+                <button onclick="switchTab('quickMatch')" id="nav-quickMatch" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:text-white text-gray-400">
+                    <i class="fa-solid fa-bolt mr-2 text-brand-accent"></i>Partida Rápida
+                </button>
+                <button onclick="switchTab('draft')" id="nav-draft" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:text-white text-gray-400">
+                    <i class="fa-solid fa-layer-group mr-2 text-brand-gold"></i>Modo Draft
+                </button>
+                <button onclick="switchTab('tournament')" id="nav-tournament" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:text-white text-gray-400">
+                    <i class="fa-solid fa-trophy mr-2 text-yellow-500"></i>Campeonato
+                </button>
+                <button onclick="switchTab('admin')" id="nav-admin" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:text-white text-gray-400">
+                    <i class="fa-solid fa-users-gear mr-2 text-cyan-400"></i>Elencos & Times
+                </button>
+            </nav>
+
+            <!-- User Info Badge -->
+            <div class="flex items-center space-x-3">
+                <div id="userInfo" class="hidden sm:flex items-center space-x-2 bg-brand-dark px-3 py-1.5 rounded-lg border border-brand-border text-xs">
+                    <div class="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></div>
+                    <span id="userName" class="font-medium text-gray-300">Treinador</span>
+                </div>
             </div>
         </div>
-
-        <div id="userNavSection" class="flex items-center space-x-4">
-            <!-- Dynamically populated user profile / auth status -->
+        <!-- Mobile Navigation Menu -->
+        <div class="flex md:hidden border-t border-brand-border justify-around py-2 bg-brand-dark/95 text-xs">
+            <button onclick="switchTab('quickMatch')" class="flex flex-col items-center text-gray-400 hover:text-brand-accent">
+                <i class="fa-solid fa-bolt mb-1"></i>Partida
+            </button>
+            <button onclick="switchTab('draft')" class="flex flex-col items-center text-gray-400 hover:text-brand-gold">
+                <i class="fa-solid fa-layer-group mb-1"></i>Draft
+            </button>
+            <button onclick="switchTab('tournament')" class="flex flex-col items-center text-gray-400 hover:text-yellow-500">
+                <i class="fa-solid fa-trophy mb-1"></i>Ligas
+            </button>
+            <button onclick="switchTab('admin')" class="flex flex-col items-center text-gray-400 hover:text-cyan-400">
+                <i class="fa-solid fa-users-gear mb-1"></i>Elencos
+            </button>
         </div>
     </header>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col">
-        
-        <!-- App Navigation Tabs (Hidden until authenticated) -->
-        <nav id="appNavigation" class="hidden flex-wrap gap-2 mb-6 border-b border-gray-800 pb-4">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-2">
-                <i class="fa-solid fa-house"></i> Início
-            </button>
-            <button onclick="switchTab('quickmatch')" id="nav-quickmatch" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-gray-900/60 text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-bolt"></i> Partida Rápida
-            </button>
-            <button onclick="switchTab('draft')" id="nav-draft" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-gray-900/60 text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-crown text-amber-400"></i> Modo Draft
-            </button>
-            <button onclick="switchTab('tournament')" id="nav-tournament" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-gray-900/60 text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-trophy text-emerald-400"></i> Campeonatos
-            </button>
-            <button onclick="switchTab('admin')" id="nav-admin" class="tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-gray-900/60 text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2">
-                <i class="fa-solid fa-shield-halved"></i> Banco & Admin
-            </button>
-        </nav>
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 flex-grow">
 
-        <!-- VIEWS CONTAINER -->
-        <div class="flex-1 flex flex-col relative">
-
-            <section id="view-auth" class="flex-1 flex items-center justify-center py-12">
-                <div class="glass-panel p-8 md:p-10 rounded-3xl max-w-md w-full neon-glow border border-cyan-500/20 relative overflow-hidden">
-                    <div class="absolute -top-12 -right-12 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="text-center mb-8">
-                        <div class="inline-block p-4 rounded-2xl bg-cyan-500/10 text-cyan-400 text-3xl mb-3 border border-cyan-500/20">
-                            <i class="fa-solid fa-gamepad"></i>
-                        </div>
-                        <h2 class="text-2xl font-black tracking-tight text-white">STARS SIMULATOR</h2>
-                        <p class="text-xs text-gray-400 mt-1">Insira seu apelido de manager para acessar o simulador FC27</p>
-                    </div>
-
-                    <form onsubmit="handleLogin(event)" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Apelido do Manager</label>
-                            <input type="text" id="authUsername" required placeholder="Ex: PepManager27" 
-                                class="w-full bg-gray-900/90 border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400 transition">
-                        </div>
-                        <button type="submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-cyan-500 to-emerald-400 text-eafc-dark font-black rounded-xl hover:opacity-95 transition shadow-lg shadow-cyan-500/20">
-                            ENTRAR NO JOGO <i class="fa-solid fa-arrow-right ml-2"></i>
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="tab-view hidden space-y-6">
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-card via-brand-dark to-brand-card border border-brand-border p-6 md:p-10 shadow-2xl">
+                <div class="relative z-10 max-w-2xl">
+                    <span class="px-3 py-1 bg-brand-accent/10 border border-brand-accent/30 text-brand-accent rounded-full text-xs font-semibold uppercase tracking-wider">Simulador Oficial</span>
+                    <h2 class="text-4xl md:text-6xl font-teko font-bold uppercase tracking-wide mt-3 text-white">BEM-VINDO AO <span class="text-brand-accent">STARS SIMULATOR</span></h2>
+                    <p class="text-gray-400 text-sm md:text-base leading-relaxed mt-2">
+                        Cadastre seus próprios clubes e jogadores, escale sua tática ideal, enfrente seus amigos no modo Draft e dispute partidas realistas em tempo real com radar visual de ataque.
+                    </p>
+                    <div class="mt-6 flex flex-wrap gap-4">
+                        <button onclick="switchTab('admin')" class="bg-brand-accent hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-brand-accent/20 flex items-center">
+                            <i class="fa-solid fa-plus mr-2"></i> Criar Primeiros Times & Atletas
                         </button>
-                    </form>
-                    <div class="mt-6 text-center text-xs text-gray-500">
-                        Seus dados e atletas criados ficam salvos no seu navegador.
-                    </div>
-                </div>
-            </section>
-
-            <section id="view-dashboard" class="view-section hidden flex-1 space-y-6">
-                <div class="glass-panel p-6 md:p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                    <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div>
-                        <span class="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-bold rounded-full border border-cyan-500/20">Modo Carreira Ativo</span>
-                        <h1 id="welcomeUser" class="text-3xl md:text-4xl font-black text-white mt-2">Bem-vindo, Manager!</h1>
-                        <p class="text-gray-400 text-sm mt-1">Gerencie seu banco de atletas, dispute campeonatos e teste táticas em tempo real.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-3 z-10">
-                        <button onclick="switchTab('quickmatch')" class="px-5 py-3 bg-cyan-500 hover:bg-cyan-400 text-eafc-dark font-extrabold rounded-2xl transition shadow-lg shadow-cyan-500/20 flex items-center gap-2">
-                            <i class="fa-solid fa-bolt"></i> Partida Rápida
-                        </button>
-                        <button onclick="switchTab('draft')" class="px-5 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-2xl transition border border-gray-700 flex items-center gap-2">
-                            <i class="fa-solid fa-crown text-amber-400"></i> Modo Draft
+                        <button onclick="switchTab('quickMatch')" class="bg-brand-dark border border-brand-border hover:border-gray-500 text-white font-bold px-6 py-3 rounded-xl transition flex items-center">
+                            <i class="fa-solid fa-play mr-2 text-brand-accent"></i> Ir para Partida Rápida
                         </button>
                     </div>
                 </div>
+            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div onclick="switchTab('admin')" class="glass-panel p-6 rounded-3xl hover:border-cyan-500/40 transition cursor-pointer group">
-                        <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                            <i class="fa-solid fa-users"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-white">Banco de Atletas</h3>
-                        <p class="text-gray-400 text-xs mt-1">Cadastre jogadores com overall, perna boa, estrelas de drible e foto 3x4.</p>
-                        <div id="statsTotalPlayers" class="mt-4 text-2xl font-extrabold text-cyan-400">0 Cadastrados</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-brand-card border border-brand-border rounded-xl p-5 hover:border-brand-accent transition cursor-pointer" onclick="switchTab('quickMatch')">
+                    <div class="w-12 h-12 bg-brand-accent/10 text-brand-accent rounded-xl flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-futbol"></i>
                     </div>
-                    <div onclick="switchTab('tournament')" class="glass-panel p-6 rounded-3xl hover:border-emerald-500/40 transition cursor-pointer group">
-                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                            <i class="fa-solid fa-trophy"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-white">Campeonatos</h3>
-                        <p class="text-gray-400 text-xs mt-1">Dispute ligas de pontos corridos ou torneios eliminatórios (Mata-Mata).</p>
-                        <div class="mt-4 text-2xl font-extrabold text-emerald-400">FC27 Format</div>
-                    </div>
-                    <div onclick="switchTab('draft')" class="glass-panel p-6 rounded-3xl hover:border-amber-500/40 transition cursor-pointer group">
-                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                            <i class="fa-solid fa-crown"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-white">Modo Draft</h3>
-                        <p class="text-gray-400 text-xs mt-1">Monte seu time perfeito escolhendo 1 entre 5 opções por posição.</p>
-                        <div class="mt-4 text-2xl font-extrabold text-amber-400">11 Titulares + 7 Reservas</div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="view-admin" class="view-section hidden flex-1 space-y-6">
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-2xl font-extrabold text-white">Banco de Dados & Administração</h2>
-                        <p class="text-xs text-gray-400">Cadastre os clubes, overall, posições e fotos 3x4 transparentes dos atletas.</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="loadDefaultDemoData()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-xs font-bold rounded-xl border border-gray-700 text-gray-300 transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-database text-cyan-400"></i> Carregar Elenco Padrão (Demo)
-                        </button>
-                    </div>
+                    <h3 class="text-xl font-teko font-bold text-white uppercase">Partida Rápida</h3>
+                    <p class="text-xs text-gray-400 mt-1">Simulação tática individual de 2 clubes com estatísticas, radar 365Scores e troca de batedor de pênalti.</p>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Formulário de Cadastro -->
-                    <div class="glass-panel p-6 rounded-3xl space-y-4">
-                        <h3 class="text-lg font-bold text-white border-b border-gray-800 pb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-user-plus text-cyan-400"></i> Novo Atleta
-                        </h3>
-                        <form onsubmit="handleSavePlayer(event)" class="space-y-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-400 mb-1">Nome do Atleta</label>
-                                <input type="text" id="pName" required placeholder="Ex: Vinícius Júnior" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-400 mb-1">Time / Clube</label>
-                                    <input type="text" id="pTeam" required placeholder="Ex: Real Madrid" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-400 mb-1">Overall (OVR)</label>
-                                    <input type="number" id="pOvr" min="40" max="99" value="85" required class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-400 mb-1">Posição</label>
-                                    <select id="pPos" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                                        <option value="GOL">GOL (Goleiro)</option>
-                                        <option value="ZAG">ZAG</option>
-                                        <option value="LE">LE</option>
-                                        <option value="LD">LD</option>
-                                        <option value="VOL">VOL</option>
-                                        <option value="MC">MC</option>
-                                        <option value="ME">ME</option>
-                                        <option value="MD">MD</option>
-                                        <option value="MAT">MAT</option>
-                                        <option value="ATA">ATA</option>
-                                        <option value="CA">CA</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-400 mb-1">Perna Boa</label>
-                                    <select id="pFoot" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                                        <option value="Direita">Direita</option>
-                                        <option value="Esquerda">Esquerda</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-gray-400 mb-1">Drible (1-5)</label>
-                                    <select id="pSkills" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                                        <option value="1">1 ★</option>
-                                        <option value="2">2 ★</option>
-                                        <option value="3">3 ★</option>
-                                        <option value="4">4 ★</option>
-                                        <option value="5" selected>5 ★</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-400 mb-1">Foto 3x4 (URL com Fundo Transparente)</label>
-                                <input type="url" id="pPhoto" placeholder="https://exemplo.com/foto_transparente.png" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-400 outline-none">
-                                <p class="text-[10px] text-gray-500 mt-1">Dica: Use links diretos de imagens PNG transparentes. Caso vazio, geramos um card estilizado FC27.</p>
-                            </div>
-                            <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-emerald-400 text-eafc-dark font-black rounded-xl text-sm transition hover:opacity-95 shadow-lg shadow-cyan-500/20 mt-2">
-                                CADASTRAR ATLETA
-                            </button>
-                        </form>
+                <div class="bg-brand-card border border-brand-border rounded-xl p-5 hover:border-brand-gold transition cursor-pointer" onclick="switchTab('draft')">
+                    <div class="w-12 h-12 bg-brand-gold/10 text-brand-gold rounded-xl flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-list-check"></i>
                     </div>
-
-                    <!-- Lista de Atletas -->
-                    <div class="glass-panel p-6 rounded-3xl lg:col-span-2 flex flex-col h-[540px]">
-                        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
-                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                                <i class="fa-solid fa-database text-emerald-400"></i> Atletas Cadastrados (<span id="playerCount">0</span>)
-                            </h3>
-                            <button onclick="clearAllPlayers()" class="text-xs text-red-400 hover:text-red-300 transition flex items-center gap-1">
-                                <i class="fa-solid fa-trash-can"></i> Limpar Tudo
-                            </button>
-                        </div>
-                        <div id="playerListContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-2">
-                            <!-- Populated via JS -->
-                        </div>
-                    </div>
+                    <h3 class="text-xl font-teko font-bold text-white uppercase">Modo Draft</h3>
+                    <p class="text-xs text-gray-400 mt-1">Escolha posição por posição entre 5 atletas sorteadise monte um elenco de estrelas para competir.</p>
                 </div>
-            </section>
 
-            <section id="view-quickmatch" class="view-section hidden flex-1 space-y-6">
-                <div class="glass-panel p-8 md:p-10 rounded-3xl space-y-6 max-w-xl mx-auto w-full">
-                    <div class="text-center">
-                        <span class="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-bold rounded-full border border-cyan-500/20">Partida Exibição</span>
-                        <h2 class="text-2xl font-black text-white mt-2">CONFIGURAR PARTIDA RÁPIDA</h2>
-                        <p class="text-xs text-gray-400 mt-1">Selecione os dois times do seu banco de dados para iniciar o confronto ao vivo.</p>
+                <div class="bg-brand-card border border-brand-border rounded-xl p-5 hover:border-yellow-500 transition cursor-pointer" onclick="switchTab('tournament')">
+                    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-sitemap"></i>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-cyan-400">Time da Casa (Mandante)</label>
-                            <select id="qmHomeTeam" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white text-sm focus:border-cyan-400 outline-none">
-                                <!-- Populated via JS -->
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-amber-400">Time Visitante</label>
-                            <select id="qmAwayTeam" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white text-sm focus:border-amber-400 outline-none">
-                                <!-- Populated via JS -->
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="pt-4">
-                        <button onclick="startQuickMatch()" class="w-full py-4 bg-gradient-to-r from-cyan-500 via-emerald-400 to-cyan-500 text-eafc-dark font-black text-base rounded-2xl hover:opacity-95 transition shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-3">
-                            <i class="fa-solid fa-play"></i> INICIAR PARTIDA AO VIVO
-                        </button>
-                    </div>
+                    <h3 class="text-xl font-teko font-bold text-white uppercase">Campeonatos</h3>
+                    <p class="text-xs text-gray-400 mt-1">Crie ligas de pontos corridos ou fases mata-mata para decidir o grande campeão da temporada.</p>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section id="view-draft" class="view-section hidden flex-1 space-y-6">
-                <div id="draftSetupScreen" class="glass-panel p-8 md:p-10 rounded-3xl max-w-xl mx-auto text-center space-y-6">
-                    <div class="w-20 h-20 bg-amber-500/10 text-amber-400 rounded-3xl flex items-center justify-center mx-auto text-4xl border border-amber-500/20 gold-glow">
-                        <i class="fa-solid fa-crown"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-black text-white">MODO DRAFT EA FC 27</h2>
-                        <p class="text-xs text-gray-400 mt-1">Monte seu elenco definitivo escolhendo 11 titulares e 7 reservas posição por posição. A cada etapa, o sistema sorteia 5 atletas daquela posição específica para você escolher o melhor!</p>
-                    </div>
-                    <button onclick="initDraft()" class="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-400 text-eafc-dark font-black rounded-2xl hover:opacity-95 transition shadow-lg shadow-amber-500/20">
-                        INICIAR NOVO DRAFT <i class="fa-solid fa-arrow-right ml-2"></i>
+        <!-- ADMIN & DATABASE MANAGEMENT VIEW -->
+        <section id="view-admin" class="tab-view hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-brand-card p-5 rounded-2xl border border-brand-border">
+                <div>
+                    <h2 class="text-2xl font-teko font-bold uppercase text-white">Banco de Dados & Gestão de Atletas</h2>
+                    <p class="text-xs text-gray-400">Cadastre seus atletas personalizados e organize seus clubes para iniciar as simulações.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="clearDatabase()" class="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold transition">
+                        <i class="fa-solid fa-trash mr-1"></i> Resetar Banco
+                    </button>
+                    <button onclick="openAddPlayerModal()" class="bg-brand-accent hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition flex items-center">
+                        <i class="fa-solid fa-plus mr-1.5"></i> Novo Atleta
                     </button>
                 </div>
+            </div>
 
-                <div id="draftActiveScreen" class="hidden space-y-6">
-                    <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
-                        <div>
-                            <span id="draftStepIndicator" class="text-xs font-bold text-amber-400 uppercase tracking-wider">Passo 1 de 18</span>
-                            <h3 id="draftStepTitle" class="text-lg font-bold text-white">Escolha o Titular para: Goleiro (GOL)</h3>
-                        </div>
-                        <div id="draftRosterSummary" class="text-xs text-gray-400 font-semibold">
-                            Selecionados: 0 / 18
-                        </div>
+            <!-- Database Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-brand-card border border-brand-border p-4 rounded-xl">
+                    <span class="text-xs text-gray-400 font-medium uppercase">Total de Atletas</span>
+                    <p id="stat-total-players" class="text-3xl font-teko font-bold text-white">0</p>
+                </div>
+                <div class="bg-brand-card border border-brand-border p-4 rounded-xl">
+                    <span class="text-xs text-gray-400 font-medium uppercase">Total de Times</span>
+                    <p id="stat-total-teams" class="text-3xl font-teko font-bold text-brand-accent">0</p>
+                </div>
+                <div class="bg-brand-card border border-brand-border p-4 rounded-xl">
+                    <span class="text-xs text-gray-400 font-medium uppercase">Goleiros (GOL)</span>
+                    <p id="stat-total-gks" class="text-3xl font-teko font-bold text-brand-gold">0</p>
+                </div>
+                <div class="bg-brand-card border border-brand-border p-4 rounded-xl">
+                    <span class="text-xs text-gray-400 font-medium uppercase">Média Geral Overall</span>
+                    <p id="stat-avg-overall" class="text-3xl font-teko font-bold text-cyan-400">0.0</p>
+                </div>
+            </div>
+
+            <!-- Athlete Table & Filters -->
+            <div class="bg-brand-card border border-brand-border rounded-2xl overflow-hidden shadow-xl">
+                <div class="p-4 border-b border-brand-border flex flex-col md:flex-row gap-3 justify-between items-center">
+                    <div class="relative w-full md:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-500 text-xs"></i>
+                        <input type="text" id="filter-player-search" oninput="renderPlayersTable()" placeholder="Buscar por nome ou time..." class="w-full bg-brand-dark border border-brand-border pl-8 pr-3 py-2 rounded-xl text-xs text-white focus:outline-none focus:border-brand-accent">
                     </div>
-
-                    <div id="draftOptionsGrid" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <!-- Populated via JS -->
+                    <div class="flex space-x-2 w-full md:w-auto">
+                        <select id="filter-player-pos" onchange="renderPlayersTable()" class="bg-brand-dark border border-brand-border px-3 py-2 rounded-xl text-xs text-gray-300 focus:outline-none">
+                            <option value="">Todas as Posições</option>
+                            <option value="GOL">GOL</option>
+                            <option value="ZAG">ZAG</option>
+                            <option value="LE">LE</option>
+                            <option value="LD">LD</option>
+                            <option value="VOL">VOL</option>
+                            <option value="MC">MC</option>
+                            <option value="ME">ME</option>
+                            <option value="MD">MD</option>
+                            <option value="MAT">MAT</option>
+                            <option value="ATA">ATA</option>
+                            <option value="CA">CA</option>
+                        </select>
                     </div>
                 </div>
-            </section>
 
-            <section id="view-tournament" class="view-section hidden flex-1 space-y-6">
-                <div id="tourneySetupScreen" class="glass-panel p-8 md:p-10 rounded-3xl max-w-xl mx-auto text-center space-y-6">
-                    <div class="w-20 h-20 bg-emerald-500/10 text-emerald-400 rounded-3xl flex items-center justify-center mx-auto text-4xl border border-emerald-500/20">
-                        <i class="fa-solid fa-trophy"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-black text-white">MODO CAMPEONATO FC 27</h2>
-                        <p class="text-xs text-gray-400 mt-1">Crie ligas de pontos corridos ou torneios eliminatórios (Mata-Mata) utilizando os clubes cadastrados no seu banco.</p>
-                    </div>
-                    <div class="space-y-3">
-                        <select id="tourneyType" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3.5 text-white text-sm outline-none focus:border-emerald-400">
-                            <option value="points">Pontos Corridos (Liga)</option>
-                            <option value="cup">Mata-Mata (Eliminatórias)</option>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-300">
+                        <thead class="bg-brand-dark/90 text-gray-400 uppercase tracking-wider font-semibold border-b border-brand-border">
+                            <tr>
+                                <th class="p-3">Atleta</th>
+                                <th class="p-3">Time</th>
+                                <th class="p-3">Posição</th>
+                                <th class="p-3 text-center">Overall</th>
+                                <th class="p-3 text-center">Perna</th>
+                                <th class="p-3 text-center">Drible</th>
+                                <th class="p-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="players-table-body" class="divide-y divide-brand-border/50">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUICK MATCH & 365SCORES ENGINE VIEW -->
+        <section id="view-quickMatch" class="tab-view hidden space-y-6">
+            <!-- Setup Teams Bar (Before Match Starts) -->
+            <div id="match-setup-panel" class="bg-brand-card border border-brand-border p-5 rounded-2xl space-y-5">
+                <h2 class="text-xl font-teko font-bold uppercase text-white flex items-center">
+                    <i class="fa-solid fa-sliders text-brand-accent mr-2"></i> Configurar Partida Rápida
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Home Team Picker -->
+                    <div class="space-y-3 bg-brand-dark p-4 rounded-xl border border-brand-border">
+                        <label class="text-xs font-semibold text-gray-400 uppercase">Mandante (Time A)</label>
+                        <select id="select-home-team" onchange="updateMatchSetupPreview()" class="w-full bg-brand-card border border-brand-border p-2.5 rounded-xl text-sm text-white focus:border-brand-accent">
+                            <!-- Populated via JS -->
                         </select>
-                        <button onclick="startTournament()" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-cyan-400 text-eafc-dark font-black rounded-2xl hover:opacity-95 transition shadow-lg shadow-emerald-500/20">
-                            CRIAR E DISPUTAR CAMPEONATO
+                        <div id="home-team-preview" class="text-xs text-gray-400 flex justify-between items-center pt-2">
+                            <span>Elenco Titular: <strong id="home-count-titular" class="text-brand-accent">0</strong>/11</span>
+                            <span>Banco: <strong id="home-count-banco" class="text-brand-gold">0</strong>/7</span>
+                        </div>
+                    </div>
+
+                    <!-- Away Team Picker -->
+                    <div class="space-y-3 bg-brand-dark p-4 rounded-xl border border-brand-border">
+                        <label class="text-xs font-semibold text-gray-400 uppercase">Visitante (Time B)</label>
+                        <select id="select-away-team" onchange="updateMatchSetupPreview()" class="w-full bg-brand-card border border-brand-border p-2.5 rounded-xl text-sm text-white focus:border-brand-accent">
+                            <!-- Populated via JS -->
+                        </select>
+                        <div id="away-team-preview" class="text-xs text-gray-400 flex justify-between items-center pt-2">
+                            <span>Elenco Titular: <strong id="away-count-titular" class="text-brand-accent">0</strong>/11</span>
+                            <span>Banco: <strong id="away-count-banco" class="text-brand-gold">0</strong>/7</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2 border-t border-brand-border">
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <span class="text-xs font-semibold text-gray-400">Velocidade do Jogo:</span>
+                        <select id="select-game-speed" class="bg-brand-dark border border-brand-border px-3 py-1.5 rounded-xl text-xs text-brand-accent font-bold">
+                            <option value="2500">Super Lento (0.25x)</option>
+                            <option value="1500">Lento (0.5x)</option>
+                            <option value="900" selected>Normal (1.0x)</option>
+                            <option value="450">Rápido (2.0x)</option>
+                            <option value="200">Super Rápido (4.0x)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="startMatchSimulation()" class="w-full sm:w-auto bg-brand-accent hover:bg-emerald-400 text-slate-950 font-extrabold px-8 py-3 rounded-xl uppercase tracking-wider text-sm transition shadow-lg shadow-brand-accent/20">
+                        <i class="fa-solid fa-play mr-2"></i> Iniciar Simulação
+                    </button>
+                </div>
+            </div>
+
+            <!-- LIVE MATCH DISPLAY (365Scores Style) -->
+            <div id="match-live-panel" class="hidden space-y-5">
+                <!-- Scoreboard & Controls Header -->
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-4 md:p-6 shadow-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-brand-border/60 pb-3 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                            <span class="text-xs font-bold text-red-500 uppercase tracking-widest" id="live-match-status">AO VIVO</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <!-- Speed Control -->
+                            <div class="flex items-center space-x-2 bg-brand-dark px-2.5 py-1 rounded-lg border border-brand-border text-xs">
+                                <span class="text-gray-400">Velocidade:</span>
+                                <select id="live-speed-control" onchange="changeLiveSpeed()" class="bg-transparent text-brand-accent font-bold focus:outline-none">
+                                    <option value="2500">Super Lento</option>
+                                    <option value="1500">Lento</option>
+                                    <option value="900" selected>Normal</option>
+                                    <option value="450">Rápido</option>
+                                    <option value="200">Super Rápido</option>
+                                </select>
+                            </div>
+                            <!-- Pause Button -->
+                            <button id="btn-pause-match" onclick="togglePauseMatch()" class="bg-brand-gold hover:bg-yellow-400 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs flex items-center transition">
+                                <i class="fa-solid fa-pause mr-1.5"></i> Pausar / Tática
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Teams & Timer Center -->
+                    <div class="grid grid-cols-3 items-center text-center">
+                        <!-- Home Team -->
+                        <div class="flex flex-col items-center">
+                            <div class="w-14 h-14 md:w-20 md:h-20 bg-brand-dark rounded-2xl border border-brand-border flex items-center justify-center text-3xl font-bold text-brand-accent shadow-inner mb-2" id="live-home-badge">
+                                H
+                            </div>
+                            <h3 id="live-home-name" class="font-teko font-bold text-xl md:text-3xl text-white uppercase leading-none">TIME A</h3>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider">MANDANTE</span>
+                        </div>
+
+                        <!-- Score & Time -->
+                        <div class="flex flex-col items-center">
+                            <div class="text-4xl md:text-6xl font-teko font-extrabold text-white tracking-wider flex items-center space-x-3">
+                                <span id="live-score-home">0</span>
+                                <span class="text-brand-accent text-2xl md:text-4xl">:</span>
+                                <span id="live-score-away">0</span>
+                            </div>
+                            <div class="mt-1 bg-brand-dark/90 px-4 py-1 rounded-full border border-brand-border text-brand-accent font-teko font-bold text-lg md:text-2xl">
+                                <span id="live-match-time">00'</span>
+                            </div>
+                        </div>
+
+                        <!-- Away Team -->
+                        <div class="flex flex-col items-center">
+                            <div class="w-14 h-14 md:w-20 md:h-20 bg-brand-dark rounded-2xl border border-brand-border flex items-center justify-center text-3xl font-bold text-brand-gold shadow-inner mb-2" id="live-away-badge">
+                                A
+                            </div>
+                            <h3 id="live-away-name" class="font-teko font-bold text-xl md:text-3xl text-white uppercase leading-none">TIME B</h3>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider">VISITANTE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 365SCORES STYLE 2D PITCH RADAR -->
+                <div class="bg-brand-card border border-brand-border rounded-2xl p-4 md:p-6 space-y-4 shadow-xl">
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span class="flex items-center"><i class="fa-solid fa-arrow-right text-brand-accent mr-1.5"></i> Ataque Mandante: Esquerda &rarr; Direita</span>
+                        <span class="font-bold text-white uppercase tracking-wider">365Radar em Tempo Real</span>
+                        <span class="flex items-center"><i class="fa-solid fa-arrow-left text-brand-gold mr-1.5"></i> Ataque Visitante: Direita &rarr; Esquerda</span>
+                    </div>
+
+                    <!-- Pitch Canvas Area -->
+                    <div id="pitch-container" class="relative w-full h-64 sm:h-80 pitch-bg rounded-xl border-2 border-emerald-900/60 overflow-hidden shadow-2xl flex flex-col justify-between p-3">
+                        <!-- Dynamic Attack Radar Waves -->
+                        <div id="radar-wave-home" class="attack-wave-right hidden"></div>
+                        <div id="radar-wave-away" class="attack-wave-left hidden"></div>
+
+                        <!-- Pitch Markings Overlay -->
+                        <div class="absolute inset-0 pointer-events-none border border-white/20 m-2 rounded">
+                            <!-- Center Line -->
+                            <div class="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white/20 -translate-x-1/2"></div>
+                            <!-- Center Circle -->
+                            <div class="absolute top-1/2 left-1/2 w-24 h-24 border border-white/20 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+                            <!-- Penalty Areas -->
+                            <div class="absolute top-1/4 bottom-1/4 left-0 w-16 border-r border-y border-white/20"></div>
+                            <div class="absolute top-1/4 bottom-1/4 right-0 w-16 border-l border-y border-white/20"></div>
+                        </div>
+
+                        <!-- Live Action Radar Banner (Top Center) -->
+                        <div class="relative z-10 mx-auto bg-slate-950/85 backdrop-blur-md px-5 py-2 rounded-xl border border-brand-border/80 text-center shadow-lg">
+                            <span id="live-radar-zone" class="text-xs md:text-sm font-bold text-brand-accent tracking-wide uppercase">
+                                <i class="fa-solid fa-arrows-spin animate-spin mr-1.5"></i> Apito Inicial
+                            </span>
+                        </div>
+
+                        <!-- Ball Visual Vector -->
+                        <div id="radar-ball" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white text-slate-950 rounded-full flex items-center justify-center text-[10px] shadow-lg transition-all duration-700 z-20">
+                            ⚽
+                        </div>
+
+                        <!-- Bottom Zone Indicators -->
+                        <div class="relative z-10 flex justify-between text-[11px] font-semibold text-gray-300">
+                            <span class="bg-brand-dark/80 px-2.5 py-1 rounded border border-brand-border">Defesa Mandante</span>
+                            <span class="bg-brand-dark/80 px-2.5 py-1 rounded border border-brand-border">Meio-Campo</span>
+                            <span class="bg-brand-dark/80 px-2.5 py-1 rounded border border-brand-border">Defesa Visitante</span>
+                        </div>
+
+                        <!-- Dynamic GOAL Overlay -->
+                        <div id="goal-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-30 hidden flex flex-col items-center justify-center space-y-3">
+                            <div class="text-center animate-goal">
+                                <span class="text-6xl md:text-8xl font-teko font-extrabold text-brand-accent tracking-widest drop-shadow-2xl">GOOOOOOL!</span>
+                                <p id="goal-author-name" class="text-xl md:text-2xl font-bold text-white uppercase tracking-wider mt-1"></p>
+                                <span id="goal-team-name" class="text-xs text-brand-gold uppercase tracking-widest font-semibold"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Match Event Ticker Feed -->
+                    <div class="bg-brand-dark rounded-xl border border-brand-border p-4 space-y-2">
+                        <h4 class="text-xs font-bold uppercase text-gray-400 flex items-center">
+                            <i class="fa-solid fa-list-ul mr-1.5 text-brand-accent"></i> Minuto a Minuto da Partida
+                        </h4>
+                        <div id="match-events-log" class="h-40 overflow-y-auto space-y-2 pr-2 text-xs">
+                            <!-- Events populated live -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DRAFT MODE VIEW -->
+        <section id="view-draft" class="tab-view hidden space-y-6">
+            <div class="bg-brand-card border border-brand-border p-5 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-teko font-bold uppercase text-white">Modo Draft de Estrelas</h2>
+                    <p class="text-xs text-gray-400">Monte seu time dos sonhos escolhendo 1 jogador entre 5 opções sorteadas para cada posição.</p>
+                </div>
+                <button onclick="startNewDraft()" class="bg-brand-gold hover:bg-yellow-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                    <i class="fa-solid fa-rotate-right mr-1.5"></i> Iniciar Novo Draft
+                </button>
+            </div>
+
+            <!-- Draft Main Grid Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left: Draft Squad Positions List -->
+                <div class="bg-brand-card border border-brand-border p-4 rounded-2xl space-y-3">
+                    <h3 class="text-sm font-bold uppercase text-gray-300 border-b border-brand-border pb-2">Posições do Elenco</h3>
+                    <div id="draft-positions-list" class="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right: Draft 5 Player Choice Cards (Takes 2 cols) -->
+                <div class="lg:col-span-2 bg-brand-card border border-brand-border p-5 rounded-2xl space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-brand-border pb-3 mb-4">
+                            <span id="draft-step-title" class="font-teko font-bold text-2xl text-white uppercase">Escolha a Posição no Menu ao Lado</span>
+                            <span id="draft-progress-badge" class="bg-brand-dark text-brand-gold text-xs font-bold px-3 py-1 rounded-full border border-brand-border">0 / 18 Escolhidos</span>
+                        </div>
+
+                        <!-- 5 Options Container -->
+                        <div id="draft-options-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                            <div class="col-span-full text-center text-gray-500 py-16 text-xs">
+                                Clique em uma posição pendente para sortear as 5 cartas.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Drafted Team Button -->
+                    <div id="draft-save-container" class="hidden pt-4 border-t border-brand-border text-right">
+                        <button onclick="saveDraftedTeam()" class="bg-brand-accent hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-3 rounded-xl uppercase tracking-wider text-xs transition">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i> Salvar Time Draftado no Banco
                         </button>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div id="tourneyDashboard" class="hidden space-y-6">
-                    <!-- Tournament table or matches rendered here -->
+        <!-- TOURNAMENT MODE VIEW -->
+        <section id="view-tournament" class="tab-view hidden space-y-6">
+            <div class="bg-brand-card border border-brand-border p-5 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-teko font-bold uppercase text-white">Modo Campeonato</h2>
+                    <p class="text-xs text-gray-400">Organize competições no formato de Pontos Corridos (Ligas) ou Mata-Mata com os clubes cadastrados.</p>
                 </div>
-            </section>
+                <button onclick="openCreateTournamentModal()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                    <i class="fa-solid fa-trophy mr-1.5"></i> Criar Campeonato
+                </button>
+            </div>
 
-            <section id="view-match" class="view-section hidden flex-1 flex flex-col space-y-4">
-                <!-- Placar Header -->
-                <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <span id="matchHomeName" class="font-black text-lg text-white">Time Casa</span>
-                        <span id="matchHomeScore" class="text-2xl font-black px-3.5 py-1 bg-gray-900 rounded-xl text-cyan-400 border border-cyan-500/30">0</span>
-                    </div>
-                    <div class="text-center">
-                        <div id="matchClock" class="text-xl font-black text-amber-400 tracking-wider">00'</div>
-                        <div id="matchStatusText" class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">1º Tempo</div>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <span id="matchAwayScore" class="text-2xl font-black px-3.5 py-1 bg-gray-900 rounded-xl text-amber-400 border border-amber-500/30">0</span>
-                        <span id="matchAwayName" class="font-black text-lg text-white">Time Fora</span>
-                    </div>
+            <!-- Active Tournament Display -->
+            <div id="tournament-active-panel" class="bg-brand-card border border-brand-border p-6 rounded-2xl space-y-6">
+                <div class="text-center text-gray-500 py-12 text-xs">
+                    Nenhum campeonato em andamento. Clique em "Criar Campeonato" acima para começar.
                 </div>
-
-                <!-- Campo e Timeline -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
-                    <!-- Campo 2D Interativo -->
-                    <div class="glass-panel p-4 rounded-2xl lg:col-span-2 flex flex-col items-center justify-center relative overflow-hidden h-[440px] md:h-[520px]">
-                        <!-- Campo de Futebol SVG Style -->
-                        <div class="absolute inset-4 bg-gradient-to-b from-emerald-950 via-emerald-900 to-emerald-950 rounded-2xl border-2 border-emerald-700/60 overflow-hidden shadow-inner flex flex-col justify-between p-4">
-                            <!-- Linhas do gramado -->
-                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div class="w-36 h-36 rounded-full border-2 border-emerald-600/40"></div>
-                                <div class="absolute w-full h-[1px] bg-emerald-600/40"></div>
-                            </div>
-                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-16 border-b-2 border-x-2 border-emerald-600/40 rounded-b-2xl"></div>
-                            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 border-t-2 border-x-2 border-emerald-600/40 rounded-t-2xl"></div>
-
-                            <!-- Canvas de Jogadores 2D Animados -->
-                            <div id="pitchCanvas" class="relative w-full h-full">
-                                <!-- Populated via JS -->
-                            </div>
-                        </div>
-
-                        <!-- Botões Táticos e Substituições -->
-                        <div class="absolute bottom-6 z-10 flex gap-3">
-                            <button onclick="openTacticsModal()" class="px-4 py-2.5 bg-gray-900/90 hover:bg-gray-800 text-white font-bold rounded-xl text-xs border border-gray-700 shadow-lg flex items-center gap-2 transition">
-                                <i class="fa-solid fa-chess-board text-cyan-400"></i> Táticas & Formação
-                            </button>
-                            <button onclick="openSubsModal()" class="px-4 py-2.5 bg-gray-900/90 hover:bg-gray-800 text-white font-bold rounded-xl text-xs border border-gray-700 shadow-lg flex items-center gap-2 transition">
-                                <i class="fa-solid fa-right-left text-emerald-400"></i> Subs (<span id="subCountDisplay">3</span>/3 pausas)
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Timeline de Eventos -->
-                    <div class="glass-panel p-4 rounded-2xl flex flex-col h-[440px] md:h-[520px]">
-                        <h3 class="text-sm font-bold text-white border-b border-gray-800 pb-2 mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> Narrativa & Eventos AO VIVO
-                        </h3>
-                        <div id="matchEventsList" class="flex-1 overflow-y-auto space-y-2.5 pr-2 text-xs">
-                            <!-- Populated via JS -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-        </div>
+            </div>
+        </section>
     </main>
 
-    <!-- MODAL DE TÁTICAS & FORMAÇÃO / ARRASTAR JOGADORES -->
-    <div id="tacticsModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-panel p-6 md:p-8 rounded-3xl max-w-xl w-full space-y-4 border border-cyan-500/30">
-            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-                <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-chess-board text-cyan-400 mr-2"></i> Tática & Formação Personalizada</h3>
-                <button onclick="closeTacticsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- PAUSE & SUBSTITUTION MODAL -->
+    <div id="modal-pause" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border w-full max-w-2xl rounded-2xl p-6 space-y-5 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                <h3 class="text-2xl font-teko font-bold text-white uppercase flex items-center">
+                    <i class="fa-solid fa-pause text-brand-gold mr-2"></i> Partida Pausada - Tática & Trocas
+                </h3>
+                <span id="pause-info-badge" class="text-xs bg-brand-dark px-3 py-1 rounded-lg border border-brand-border text-gray-300">
+                    Pausas: <span id="pause-count-text" class="text-brand-accent font-bold">0/3</span> | Subs: <span id="subs-count-text" class="text-brand-gold font-bold">0/5</span>
+                </span>
             </div>
+
+            <!-- Substitution Selectors -->
             <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-400 mb-1">Formação Padrão FC27</label>
-                    <select id="tacticalFormationSelect" onchange="changeFormation(this.value)" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400">
-                        <option value="4-3-3">4-3-3 (Ofensivo Equilibrado)</option>
-                        <option value="4-4-2">4-4-2 (Linha Dupla Tradicional)</option>
-                        <option value="3-5-2">3-5-2 (Domínio de Meio-Campo)</option>
-                        <option value="5-3-2">5-3-2 (Tranca Defensiva)</option>
-                    </select>
+                <h4 class="text-xs font-bold uppercase text-gray-400">Realizar Substituição (Limite 5 trocas)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Outgoing Player (Titular) -->
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase">Sair (Titular)</label>
+                        <select id="sub-select-out" class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white">
+                            <!-- Populated on pause -->
+                        </select>
+                    </div>
+                    <!-- Incoming Player (Banco) -->
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase">Entrar (Reserva)</label>
+                        <select id="sub-select-in" class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white">
+                            <!-- Populated on pause -->
+                        </select>
+                    </div>
                 </div>
-                <div class="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl text-xs text-cyan-300 leading-relaxed">
-                    <i class="fa-solid fa-circle-info mr-1"></i> No FC27, jogadores fora de posição ou formações muito desorganizadas aumentam drasticamente a chance de sofrer gols nos contra-ataques! (Goleiro travado por regulamentação).
-                </div>
+                <button onclick="executeSubstitution()" class="w-full bg-brand-gold hover:bg-yellow-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                     Confirmar Substituição
+                </button>
             </div>
-            <div class="flex justify-end pt-2">
-                <button onclick="closeTacticsModal()" class="px-6 py-2.5 bg-cyan-500 text-eafc-dark font-extrabold rounded-xl text-xs">APLICAR TÁTICA</button>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-brand-border">
+                <button onclick="resumeMatch()" class="bg-brand-accent hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                    <i class="fa-solid fa-play mr-1.5"></i> Retomar Partida
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DE SUBSTITUIÇÕES -->
-    <div id="subsModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-panel p-6 md:p-8 rounded-3xl max-w-lg w-full space-y-4 border border-emerald-500/30">
-            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-                <h3 class="text-lg font-bold text-white"><i class="fa-solid fa-right-left text-emerald-400 mr-2"></i> Banco de Substituições</h3>
-                <button onclick="closeSubsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="space-y-3">
-                <p class="text-xs text-gray-400">Restam <span id="modalSubsPauses" class="font-bold text-white">3</span> pausas e <span id="modalSubsChanges" class="font-bold text-white">5</span> trocas permitidas nesta partida.</p>
-                <div id="subsListContainer" class="space-y-2 max-h-64 overflow-y-auto pr-1 text-xs">
-                    <!-- Populated via JS -->
-                </div>
-            </div>
-            <div class="flex justify-end pt-2">
-                <button onclick="closeSubsModal()" class="px-6 py-2.5 bg-emerald-500 text-eafc-dark font-extrabold rounded-xl text-xs">CONCLUIR</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE PÊNALTI -->
-    <div id="penaltyModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-panel p-8 rounded-3xl max-w-md w-full text-center space-y-6 border border-amber-500/40 gold-glow">
-            <div class="w-16 h-16 bg-amber-500/10 text-amber-400 rounded-3xl flex items-center justify-center mx-auto text-3xl border border-amber-500/20">
-                <i class="fa-solid fa-futbol animate-bounce"></i>
+    <!-- PENALTY TAKER PICKER MODAL -->
+    <div id="modal-penalty" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border w-full max-w-md rounded-2xl p-6 space-y-5 text-center shadow-2xl">
+            <div class="w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-red-500/20">
+                ⚽
             </div>
             <div>
-                <h2 class="text-2xl font-black text-white">PÊNALTI ASSINALADO!</h2>
-                <p class="text-xs text-gray-400 mt-1">Selecione o cobrador oficial para a cobrança decisiva.</p>
+                <h3 class="text-3xl font-teko font-bold text-white uppercase">É PÊNALTI!</h3>
+                <p id="penalty-team-msg" class="text-xs text-gray-400 mt-1">Escolha o batedor para a cobrança da penalidade máxima:</p>
             </div>
-            <div id="penaltyShootersList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                <!-- Populated via JS -->
+
+            <div class="space-y-2 text-left">
+                <label class="text-[11px] font-semibold text-gray-400 uppercase">Selecione o Batedor</label>
+                <select id="penalty-taker-select" class="w-full bg-brand-dark border border-brand-border p-3 rounded-xl text-xs text-white focus:border-brand-accent">
+                    <!-- Populated dynamically -->
+                </select>
             </div>
+
+            <button onclick="confirmPenaltyTaker()" class="w-full bg-red-500 hover:bg-red-400 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-red-500/20">
+                <i class="fa-solid fa-bullseye mr-1.5"></i> Executar Cobrança
+            </button>
         </div>
     </div>
 
-    <script>
-        // State Management
-        let currentUser = null;
-        let playersDB = [];
-        let draftState = {
-            step: 0,
-            positions: ['GOL','ZAG','ZAG','LE','LD','VOL','MC','MAT','ME','MD','ATA','RES1','RES2','RES3','RES4','RES5','RES6','RES7'],
-            selectedRoster: []
-        };
-        let activeMatch = null;
-        let matchTimerInterval = null;
+    <!-- ADD PLAYER MODAL -->
+    <div id="modal-add-player" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-brand-card border border-brand-border w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                <h3 class="text-2xl font-teko font-bold text-white uppercase">Cadastrar Novo Atleta</h3>
+                <button onclick="closeAddPlayerModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
 
-        // Default Demo Players (FC27 style)
-        const defaultDemoPlayers = [
-            { id: '1', name: 'Courtois', team: 'Real Madrid', ovr: 90, pos: 'GOL', foot: 'Esquerda', skills: 1, photo: '' },
-            { id: '2', name: 'E. Militão', team: 'Real Madrid', ovr: 86, pos: 'ZAG', foot: 'Direita', skills: 2, photo: '' },
-            { id: '3', name: 'W. Saliba', team: 'Arsenal', ovr: 87, pos: 'ZAG', foot: 'Direita', skills: 2, photo: '' },
-            { id: '4', name: 'A. Davies', team: 'Bayern', ovr: 88, pos: 'LE', foot: 'Esquerda', skills: 4, photo: '' },
-            { id: '5', name: 'T. Alexander-Arnold', team: 'Liverpool', ovr: 86, pos: 'LD', foot: 'Direita', skills: 3, photo: '' },
-            { id: '6', name: 'Rodri', team: 'Manchester City', ovr: 91, pos: 'VOL', foot: 'Direita', skills: 3, photo: '' },
-            { id: '7', name: 'K. De Bruyne', team: 'Manchester City', ovr: 91, pos: 'MC', foot: 'Direita', skills: 4, photo: '' },
-            { id: '8', name: 'J. Bellingham', team: 'Real Madrid', ovr: 90, pos: 'MAT', foot: 'Direita', skills: 4, photo: '' },
-            { id: '9', name: 'V. Júnior', team: 'Real Madrid', ovr: 91, pos: 'ME', foot: 'Direita', skills: 5, photo: '' },
-            { id: '10', name: 'M. Salah', team: 'Liverpool', ovr: 89, pos: 'MD', foot: 'Esquerda', skills: 4, photo: '' },
-            { id: '11', name: 'K. Mbappé', team: 'Real Madrid', ovr: 92, pos: 'ATA', foot: 'Direita', skills: 5, photo: '' },
-            { id: '12', name: 'Alisson', team: 'Liverpool', ovr: 89, pos: 'GOL', foot: 'Direita', skills: 1, photo: '' },
-            { id: '13', name: 'R. Dias', team: 'Manchester City', ovr: 88, pos: 'ZAG', foot: 'Direita', skills: 2, photo: '' },
-            { id: '14', name: 'F. Valverde', team: 'Real Madrid', ovr: 88, pos: 'MC', foot: 'Direita', skills: 3, photo: '' },
-            { id: '15', name: 'H. Kane', team: 'Bayern', ovr: 90, pos: 'CA', foot: 'Direita', skills: 3, photo: '' },
-            { id: '16', name: 'L. Messi', team: 'Inter Miami', ovr: 88, pos: 'ATA', foot: 'Esquerda', skills: 4, photo: '' },
-            { id: '17', name: 'C. Ronaldo', team: 'Al Nassr', ovr: 86, pos: 'CA', foot: 'Direita', skills: 4, photo: '' },
-            { id: '18', name: 'B. Saka', team: 'Arsenal', ovr: 87, pos: 'MD', foot: 'Esquerda', skills: 4, photo: '' }
+            <form id="form-add-player" onsubmit="handleSavePlayer(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Nome do Atleta</label>
+                        <input type="text" id="player-name" required placeholder="Ex: Lucas Silva" class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Nome do Time</label>
+                        <input type="text" id="player-team" required placeholder="Ex: Estrelas FC" class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Overall (40-99)</label>
+                        <input type="number" id="player-overall" min="40" max="99" required value="75" class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Posição</label>
+                        <select id="player-pos" required class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                            <option value="GOL">GOL (Goleiro)</option>
+                            <option value="ZAG">ZAG (Zagueiro)</option>
+                            <option value="LE">LE (Lat. Esquerdo)</option>
+                            <option value="LD">LD (Lat. Direito)</option>
+                            <option value="VOL">VOL (Volante)</option>
+                            <option value="MC">MC (Meio-Campo)</option>
+                            <option value="ME">ME (Meia Esquerdo)</option>
+                            <option value="MD">MD (Meia Direito)</option>
+                            <option value="MAT">MAT (Meia Atacante)</option>
+                            <option value="ATA">ATA (Atacante)</option>
+                            <option value="CA">CA (Centroavante)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Perna Boa</label>
+                        <select id="player-foot" required class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                            <option value="Direita">Direita</option>
+                            <option value="Esquerda">Esquerda</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Estrelas de Drible (1-5)</label>
+                        <select id="player-skills" required class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                            <option value="1">1★ (Básico)</option>
+                            <option value="2">2★</option>
+                            <option value="3" selected>3★ (Médio)</option>
+                            <option value="4">4★</option>
+                            <option value="5">5★ (Profissional)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] text-gray-400 uppercase font-semibold">Foto 3x4 (URL com fundo transparente)</label>
+                        <input type="url" id="player-photo" placeholder="https://..." class="w-full bg-brand-dark border border-brand-border p-2.5 rounded-xl text-xs text-white focus:border-brand-accent">
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-brand-border flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddPlayerModal()" class="px-4 py-2 bg-brand-dark text-gray-400 rounded-xl text-xs font-semibold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-brand-accent hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition">Salvar Atleta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP LOGIC & ENGINE JAVASCRIPT -->
+    <script>
+        // Global Application State
+        const STATE = {
+            players: [],
+            teams: {},
+            draft: {
+                selectedSquad: {},
+                currentPositionKey: null
+            },
+            match: {
+                intervalId: null,
+                isPaused: false,
+                speedMs: 900,
+                timeMinutes: 0,
+                scoreHome: 0,
+                scoreAway: 0,
+                homeTeam: null,
+                awayTeam: null,
+                pausesUsedHome: 0,
+                pausesUsedAway: 0,
+                subsUsedHome: 0,
+                subsUsedAway: 0,
+                pendingPenalty: null
+            }
+        };
+
+        const DRAFT_POSITIONS = [
+            { key: 'GOL', name: 'Goleiro', isBench: false },
+            { key: 'ZAG1', name: 'Zagueiro 1', isBench: false, type: 'ZAG' },
+            { key: 'ZAG2', name: 'Zagueiro 2', isBench: false, type: 'ZAG' },
+            { key: 'LD', name: 'Lateral Direito', isBench: false },
+            { key: 'LE', name: 'Lateral Esquerdo', isBench: false },
+            { key: 'VOL', name: 'Volante', isBench: false },
+            { key: 'MC1', name: 'Meio-Campo 1', isBench: false, type: 'MC' },
+            { key: 'MC2', name: 'Meio-Campo 2', isBench: false, type: 'MC' },
+            { key: 'MAT', name: 'Meia Atacante', isBench: false },
+            { key: 'ATA', name: 'Atacante', isBench: false },
+            { key: 'CA', name: 'Centroavante', isBench: false },
+            // Bench (7 players)
+            { key: 'RES1', name: 'Reserva 1 (GOL)', isBench: true, type: 'GOL' },
+            { key: 'RES2', name: 'Reserva 2 (DEF)', isBench: true, type: 'ZAG' },
+            { key: 'RES3', name: 'Reserva 3 (DEF)', isBench: true, type: 'LE' },
+            { key: 'RES4', name: 'Reserva 4 (MEI)', isBench: true, type: 'MC' },
+            { key: 'RES5', name: 'Reserva 5 (MEI)', isBench: true, type: 'MAT' },
+            { key: 'RES6', name: 'Reserva 6 (ATA)', isBench: true, type: 'ATA' },
+            { key: 'RES7', name: 'Reserva 7 (ATA)', isBench: true, type: 'CA' }
         ];
 
-        // Initialization on Load
+        /* --- INITIALIZATION --- */
         window.onload = function() {
             loadFromLocalStorage();
-            checkAuthSession();
+            switchTab('dashboard');
         };
 
         function loadFromLocalStorage() {
-            const savedUser = localStorage.getItem('stars_user_fc27');
-            if (savedUser) currentUser = savedUser;
-
-            const savedPlayers = localStorage.getItem('stars_players_fc27');
+            const savedPlayers = localStorage.getItem('stars_sim_players');
             if (savedPlayers) {
-                playersDB = JSON.parse(savedPlayers);
+                STATE.players = JSON.parse(savedPlayers);
             } else {
-                playersDB = [...defaultDemoPlayers];
-                savePlayersToStorage();
+                STATE.players = []; // Start completely empty as requested
             }
-            updateAdminStats();
+            rebuildTeamsFromPlayers();
+            updateDatabaseStats();
+            renderPlayersTable();
         }
 
-        function savePlayersToStorage() {
-            localStorage.setItem('stars_players_fc27', JSON.stringify(playersDB));
-            updateAdminStats();
+        function saveToLocalStorage() {
+            localStorage.setItem('stars_sim_players', JSON.stringify(STATE.players));
+            rebuildTeamsFromPlayers();
+            updateDatabaseStats();
+            renderPlayersTable();
         }
 
-        function updateAdminStats() {
-            document.getElementById('playerCount').innerText = playersDB.length;
-            document.getElementById('statsTotalPlayers').innerText = `${playersDB.length} Cadastrados`;
-            populateQuickMatchSelects();
-        }
-
-        function checkAuthSession() {
-            const nav = document.getElementById('appNavigation');
-            const userNav = document.getElementById('userNavSection');
-            const authView = document.getElementById('view-auth');
-
-            if (currentUser) {
-                authView.classList.add('hidden');
-                nav.classList.remove('hidden');
-                userNav.innerHTML = `
-                    <div class="flex items-center space-x-3 bg-gray-900/80 px-4 py-2 rounded-xl border border-gray-800">
-                        <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-xs">
-                            ${currentUser.charAt(0).toUpperCase()}
-                        </div>
-                        <span class="text-sm font-bold text-white">${currentUser}</span>
-                    </div>
-                    <button onclick="handleLogout()" class="text-xs text-red-400 hover:text-red-300 font-semibold px-3.5 py-2 rounded-xl bg-red-500/10 border border-red-500/20 transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-power-off"></i> Sair
-                    </button>
-                `;
-                document.getElementById('welcomeUser').innerText = `Bem-vindo, ${currentUser}!`;
-                switchTab('dashboard');
-            } else {
-                authView.classList.remove('hidden');
-                nav.classList.add('hidden');
-                userNav.innerHTML = '';
-                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            }
-        }
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const username = document.getElementById('authUsername').value.trim();
-            if (!username) return;
-            currentUser = username;
-            localStorage.setItem('stars_user_fc27', currentUser);
-            checkAuthSession();
-        }
-
-        function handleLogout() {
-            localStorage.removeItem('stars_user_fc27');
-            currentUser = null;
-            checkAuthSession();
-        }
-
-        // Tab Navigation
-        function switchTab(tabId) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('bg-cyan-500/10', 'text-cyan-400', 'border', 'border-cyan-500/30');
-                btn.classList.add('bg-gray-900/60', 'text-gray-400');
+        function rebuildTeamsFromPlayers() {
+            STATE.teams = {};
+            STATE.players.forEach(player => {
+                if (!STATE.teams[player.team]) {
+                    STATE.teams[player.team] = [];
+                }
+                STATE.teams[player.team].push(player);
             });
-
-            const activeView = document.getElementById(`view-${tabId}`);
-            if (activeView) activeView.classList.remove('hidden');
-
-            const activeBtn = document.getElementById(`nav-${tabId}`);
-            if (activeBtn) {
-                activeBtn.classList.remove('bg-gray-900/60', 'text-gray-400');
-                activeBtn.classList.add('bg-cyan-500/10', 'text-cyan-400', 'border', 'border-cyan-500/30');
-            }
-
-            if (tabId === 'admin') renderPlayerList();
+            populateMatchTeamSelectors();
         }
 
-        // Admin: Save Player
+        function clearDatabase() {
+            if (confirm("Tem certeza que deseja apagar TODOS os times e atletas cadastrados?")) {
+                STATE.players = [];
+                saveToLocalStorage();
+            }
+        }
+
+        /* --- TAB NAVIGATION --- */
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('bg-brand-dark', 'text-white'));
+            
+            const targetView = document.getElementById(`view-${tabId}`);
+            if (targetView) targetView.classList.remove('hidden');
+
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if (targetNav) targetNav.classList.add('bg-brand-dark', 'text-white');
+
+            if (tabId === 'draft') initDraftView();
+        }
+
+        /* --- ADMIN / ATHLETE CREATION --- */
+        function openAddPlayerModal() {
+            document.getElementById('modal-add-player').classList.remove('hidden');
+        }
+
+        function closeAddPlayerModal() {
+            document.getElementById('modal-add-player').classList.add('hidden');
+            document.getElementById('form-add-player').reset();
+        }
+
         function handleSavePlayer(e) {
             e.preventDefault();
             const newPlayer = {
                 id: 'p_' + Date.now(),
-                name: document.getElementById('pName').value.trim(),
-                team: document.getElementById('pTeam').value.trim(),
-                ovr: parseInt(document.getElementById('pOvr').value),
-                pos: document.getElementById('pPos').value,
-                foot: document.getElementById('pFoot').value,
-                skills: parseInt(document.getElementById('pSkills').value),
-                photo: document.getElementById('pPhoto').value.trim()
+                name: document.getElementById('player-name').value.trim(),
+                team: document.getElementById('player-team').value.trim(),
+                overall: parseInt(document.getElementById('player-overall').value),
+                pos: document.getElementById('player-pos').value,
+                preferredFoot: document.getElementById('player-foot').value,
+                skillMoves: parseInt(document.getElementById('player-skills').value),
+                photoUrl: document.getElementById('player-photo').value.trim() || 'https://placehold.co/120x150/121824/00ff88?text=3x4'
             };
-            playersDB.push(newPlayer);
-            savePlayersToStorage();
-            e.target.reset();
-            renderPlayerList();
+
+            STATE.players.push(newPlayer);
+            saveToLocalStorage();
+            closeAddPlayerModal();
         }
 
-        function renderPlayerList() {
-            const container = document.getElementById('playerListContainer');
-            if (playersDB.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 text-gray-500 text-xs">Nenhum atleta cadastrado no banco de dados.</div>`;
+        function deletePlayer(playerId) {
+            STATE.players = STATE.players.filter(p => p.id !== playerId);
+            saveToLocalStorage();
+        }
+
+        function updateDatabaseStats() {
+            document.getElementById('stat-total-players').innerText = STATE.players.length;
+            document.getElementById('stat-total-teams').innerText = Object.keys(STATE.teams).length;
+            
+            const gks = STATE.players.filter(p => p.pos === 'GOL').length;
+            document.getElementById('stat-total-gks').innerText = gks;
+
+            if (STATE.players.length > 0) {
+                const avg = STATE.players.reduce((acc, p) => acc + p.overall, 0) / STATE.players.length;
+                document.getElementById('stat-avg-overall').innerText = avg.toFixed(1);
+            } else {
+                document.getElementById('stat-avg-overall').innerText = '0.0';
+            }
+        }
+
+        function renderPlayersTable() {
+            const tbody = document.getElementById('players-table-body');
+            const search = document.getElementById('filter-player-search').value.toLowerCase();
+            const posFilter = document.getElementById('filter-player-pos').value;
+
+            const filtered = STATE.players.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(search) || p.team.toLowerCase().includes(search);
+                const matchesPos = posFilter === '' || p.pos === posFilter;
+                return matchesSearch && matchesPos;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">Nenhum atleta encontrado no banco de dados.</td></tr>`;
                 return;
             }
-            container.innerHTML = playersDB.map(p => `
-                <div class="flex items-center justify-between p-3 bg-gray-900/70 border border-gray-800 rounded-xl hover:border-cyan-500/30 transition">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-gray-800 to-gray-700 flex items-center justify-center font-black text-amber-400 text-sm border border-gray-700">
-                            ${p.ovr}
-                        </div>
-                        <div>
-                            <div class="text-sm font-bold text-white flex items-center gap-2">
-                                ${p.name} <span class="text-[10px] px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded">${p.pos}</span>
-                            </div>
-                            <div class="text-xs text-gray-400">${p.team} • Perna: ${p.foot} • ${p.skills}★ Drible</div>
-                        </div>
-                    </div>
-                    <button onclick="deletePlayer('${p.id}')" class="text-red-400 hover:text-red-300 p-2 transition"><i class="fa-solid fa-trash"></i></button>
-                </div>
+
+            tbody.innerHTML = filtered.map(p => `
+                <tr class="hover:bg-brand-dark/50 transition border-b border-brand-border/40">
+                    <td class="p-3 flex items-center space-x-3">
+                        <img src="${p.photoUrl}" onerror="this.src='https://placehold.co/120x150/121824/00ff88?text=3x4'" class="w-8 h-10 object-cover rounded bg-brand-dark border border-brand-border" />
+                        <span class="font-bold text-white">${p.name}</span>
+                    </td>
+                    <td class="p-3 text-gray-400 font-medium">${p.team}</td>
+                    <td class="p-3"><span class="bg-brand-dark text-brand-accent px-2 py-0.5 rounded border border-brand-border font-mono font-bold">${p.pos}</span></td>
+                    <td class="p-3 text-center font-bold text-brand-gold text-sm">${p.overall}</td>
+                    <td class="p-3 text-center text-gray-400">${p.preferredFoot}</td>
+                    <td class="p-3 text-center text-yellow-400">${'★'.repeat(p.skillMoves)}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="deletePlayer('${p.id}')" class="text-red-400 hover:text-red-300 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
             `).join('');
         }
 
-        function deletePlayer(id) {
-            playersDB = playersDB.filter(p => p.id !== id);
-            savePlayersToStorage();
-            renderPlayerList();
-        }
+        /* --- QUICK MATCH & 365SCORES ENGINE --- */
+        function populateMatchTeamSelectors() {
+            const selectHome = document.getElementById('select-home-team');
+            const selectAway = document.getElementById('select-away-team');
+            const teamsList = Object.keys(STATE.teams);
 
-        function clearAllPlayers() {
-            if (confirm('Deseja realmente apagar todos os atletas do banco?')) {
-                playersDB = [];
-                savePlayersToStorage();
-                renderPlayerList();
-            }
-        }
-
-        function loadDefaultDemoData() {
-            playersDB = [...defaultDemoPlayers];
-            savePlayersToStorage();
-            renderPlayerList();
-        }
-
-        // Quick Match Selects
-        function populateQuickMatchSelects() {
-            const teams = [...new Set(playersDB.map(p => p.team))];
-            const homeSelect = document.getElementById('qmHomeTeam');
-            const awaySelect = document.getElementById('qmAwayTeam');
-
-            const optionsHTML = teams.length > 0 
-                ? teams.map(t => `<option value="${t}">${t}</option>`).join('')
-                : `<option value="Time A">Time A</option><option value="Time B">Time B</option>`;
-
-            homeSelect.innerHTML = optionsHTML;
-            awaySelect.innerHTML = optionsHTML;
-            if (teams.length > 1) awaySelect.selectedIndex = 1;
-        }
-
-        // Quick Match Start
-        function startQuickMatch() {
-            const home = document.getElementById('qmHomeTeam').value;
-            const away = document.getElementById('qmAwayTeam').value;
-
-            if (home === away) {
-                alert('Selecione times diferentes para realizar a partida.');
+            if (teamsList.length === 0) {
+                selectHome.innerHTML = `<option value="">Nenhum time cadastrado</option>`;
+                selectAway.innerHTML = `<option value="">Nenhum time cadastrado</option>`;
                 return;
             }
 
-            const homeSquad = playersDB.filter(p => p.team === home).slice(0, 11);
-            const awaySquad = playersDB.filter(p => p.team === away).slice(0, 11);
+            const optionsHTML = teamsList.map(t => `<option value="${t}">${t} (${STATE.teams[t].length} atletas)</option>`).join('');
+            selectHome.innerHTML = optionsHTML;
+            selectAway.innerHTML = optionsHTML;
 
-            initMatchSimulation(home, homeSquad.length ? homeSquad : defaultDemoPlayers.slice(0, 11), away, awaySquad.length ? awaySquad : defaultDemoPlayers.slice(11, 22));
+            if (teamsList.length > 1) {
+                selectAway.selectedIndex = 1;
+            }
+            updateMatchSetupPreview();
         }
 
-        // Draft Mode Logic
-        function initDraft() {
-            if (playersDB.length < 5) {
-                alert('Cadastre pelo menos 5 atletas no banco de dados para iniciar o modo Draft.');
-                switchTab('admin');
+        function updateMatchSetupPreview() {
+            const homeTeamName = document.getElementById('select-home-team').value;
+            const awayTeamName = document.getElementById('select-away-team').value;
+
+            const homeRoster = STATE.teams[homeTeamName] || [];
+            const awayRoster = STATE.teams[awayTeamName] || [];
+
+            document.getElementById('home-count-titular').innerText = Math.min(11, homeRoster.length);
+            document.getElementById('home-count-banco').innerText = Math.max(0, homeRoster.length - 11);
+
+            document.getElementById('away-count-titular').innerText = Math.min(11, awayRoster.length);
+            document.getElementById('away-count-banco').innerText = Math.max(0, awayRoster.length - 11);
+        }
+
+        function startMatchSimulation() {
+            const homeName = document.getElementById('select-home-team').value;
+            const awayName = document.getElementById('select-away-team').value;
+
+            if (!homeName || !awayName) {
+                alert("Cadastre times no painel antes de iniciar uma partida.");
                 return;
             }
-            draftState.step = 0;
-            draftState.selectedRoster = [];
-            document.getElementById('draftSetupScreen').classList.add('hidden');
-            document.getElementById('draftActiveScreen').classList.remove('hidden');
-            renderDraftStep();
-        }
 
-        function renderDraftStep() {
-            if (draftState.step >= draftState.positions.length) {
-                alert('Draft concluído com sucesso! Iniciando partida com seu elenco montado.');
-                initMatchSimulation('Meu Elenco Draft', draftState.selectedRoster.slice(0, 11), 'Adversário CPU', defaultDemoPlayers.slice(0, 11));
+            if (homeName === awayName) {
+                alert("Selecione dois times diferentes para a partida.");
                 return;
             }
 
-            const targetPos = draftState.positions[draftState.step];
-            document.getElementById('draftStepIndicator').innerText = `Passo ${draftState.step + 1} de ${draftState.positions.length}`;
-            document.getElementById('draftStepTitle').innerText = `Escolha para a posição: ${targetPos}`;
-            document.getElementById('draftRosterSummary').innerText = `Selecionados: ${draftState.selectedRoster.length} / 18`;
+            const homeRoster = STATE.teams[homeName] || [];
+            const awayRoster = STATE.teams[awayName] || [];
 
-            let pool = playersDB.filter(p => p.pos === targetPos || targetPos.startsWith('RES'));
-            if (pool.length < 5) pool = [...playersDB]; // fallback
-
-            const shuffled = [...pool].sort(() => 0.5 - Math.random()).slice(0, 5);
-
-            const grid = document.getElementById('draftOptionsGrid');
-            grid.innerHTML = shuffled.map(p => `
-                <div onclick="selectDraftPlayer(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="glass-panel p-6 rounded-3xl border border-gray-800 hover:border-amber-400 transition cursor-pointer group text-center space-y-3">
-                    <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 font-black text-2xl flex items-center justify-center mx-auto border border-amber-500/20 group-hover:scale-105 transition">
-                        ${p.ovr}
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-white text-sm">${p.name}</h4>
-                        <p class="text-xs text-cyan-400">${p.team} • ${p.pos}</p>
-                    </div>
-                    <div class="text-[10px] text-gray-400">Perna: ${p.foot} | ${p.skills}★ Drible</div>
-                </div>
-            `).join('');
-        }
-
-        function selectDraftPlayer(player) {
-            draftState.selectedRoster.push(player);
-            draftState.step++;
-            renderDraftStep();
-        }
-
-        // Tournament Mode Logic
-        function startTournament() {
-            const type = document.getElementById('tourneyType').value;
-            const teams = [...new Set(playersDB.map(p => p.team))];
-            if (teams.length < 2) {
-                alert('Cadastre pelo menos 2 times no banco para criar um campeonato.');
-                switchTab('admin');
+            if (homeRoster.length < 11 || awayRoster.length < 11) {
+                alert("Ambos os times precisam de pelo menos 11 atletas para jogar.");
                 return;
             }
-            document.getElementById('tourneySetupScreen').classList.add('hidden');
-            document.getElementById('tourneyDashboard').classList.remove('hidden');
-            document.getElementById('tourneyDashboard').innerHTML = `
-                <div class="glass-panel p-8 rounded-3xl space-y-4 text-center max-w-xl mx-auto">
-                    <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-2xl border border-emerald-500/20">
-                        <i class="fa-solid fa-trophy"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-white">Campeonato Criado (${type === 'points' ? 'Pontos Corridos' : 'Mata-Mata'})</h3>
-                    <p class="text-xs text-gray-400">Clubes participantes: ${teams.join(', ')}</p>
-                    <button onclick="switchTab('quickmatch')" class="px-6 py-3 bg-emerald-500 text-eafc-dark font-extrabold rounded-xl text-xs shadow-lg shadow-emerald-500/20">INICIAR CONFRONTO DA RODADA</button>
+
+            // Setup Match Engine State
+            STATE.match = {
+                intervalId: null,
+                isPaused: false,
+                speedMs: parseInt(document.getElementById('select-game-speed').value),
+                timeMinutes: 0,
+                scoreHome: 0,
+                scoreAway: 0,
+                homeTeam: {
+                    name: homeName,
+                    titulares: homeRoster.slice(0, 11),
+                    banco: homeRoster.slice(11, 18)
+                },
+                awayTeam: {
+                    name: awayName,
+                    titulares: awayRoster.slice(0, 11),
+                    banco: awayRoster.slice(11, 18)
+                },
+                pausesUsedHome: 0,
+                pausesUsedAway: 0,
+                subsUsedHome: 0,
+                subsUsedAway: 0,
+                pendingPenalty: null
+            };
+
+            // Setup Live UI
+            document.getElementById('match-setup-panel').classList.add('hidden');
+            document.getElementById('match-live-panel').classList.remove('hidden');
+
+            document.getElementById('live-home-name').innerText = homeName;
+            document.getElementById('live-away-name').innerText = awayName;
+            document.getElementById('live-home-badge').innerText = homeName.charAt(0);
+            document.getElementById('live-away-badge').innerText = awayName.charAt(0);
+            document.getElementById('live-score-home').innerText = '0';
+            document.getElementById('live-score-away').innerText = '0';
+            document.getElementById('match-events-log').innerHTML = '';
+
+            addMatchLog(` Apito inicial! Começa a partida entre ${homeName} e ${awayName}.`, 'text-brand-accent');
+
+            runMatchLoop();
+        }
+
+        function runMatchLoop() {
+            if (STATE.match.intervalId) clearInterval(STATE.match.intervalId);
+
+            STATE.match.intervalId = setInterval(() => {
+                if (STATE.match.isPaused) return;
+
+                STATE.match.timeMinutes += 1;
+                document.getElementById('live-match-time').innerText = `${STATE.match.timeMinutes}'`;
+
+                // Update 365Radar visualization
+                update365Radar();
+
+                // Process match events based on realistic probabilities
+                processMatchTick();
+
+                if (STATE.match.timeMinutes >= 90) {
+                    endMatchSimulation();
+                }
+            }, STATE.match.speedMs);
+        }
+
+        function changeLiveSpeed() {
+            const newSpeed = parseInt(document.getElementById('live-speed-control').value);
+            STATE.match.speedMs = newSpeed;
+            if (!STATE.match.isPaused) {
+                runMatchLoop();
+            }
+        }
+
+        function togglePauseMatch() {
+            if (STATE.match.isPaused) {
+                resumeMatch();
+            } else {
+                pauseMatch();
+            }
+        }
+
+        function pauseMatch() {
+            STATE.match.isPaused = true;
+            document.getElementById('live-match-status').innerText = 'PAUSADO';
+            document.getElementById('live-match-status').classList.remove('text-red-500');
+            document.getElementById('live-match-status').classList.add('text-brand-gold');
+
+            // Populate Modal Substitutions
+            populatePauseModal();
+            document.getElementById('modal-pause').classList.remove('hidden');
+        }
+
+        function resumeMatch() {
+            STATE.match.isPaused = false;
+            document.getElementById('modal-pause').classList.add('hidden');
+            document.getElementById('live-match-status').innerText = 'AO VIVO';
+            document.getElementById('live-match-status').classList.add('text-red-500');
+            document.getElementById('live-match-status').classList.remove('text-brand-gold');
+        }
+
+        function populatePauseModal() {
+            document.getElementById('pause-count-text').innerText = `${STATE.match.pausesUsedHome}/3`;
+            document.getElementById('subs-count-text').innerText = `${STATE.match.subsUsedHome}/5`;
+
+            const selectOut = document.getElementById('sub-select-out');
+            const selectIn = document.getElementById('sub-select-in');
+
+            selectOut.innerHTML = STATE.match.homeTeam.titulares.map(p => `<option value="${p.id}">${p.name} (${p.pos} - OVR ${p.overall})</option>`).join('');
+            
+            if (STATE.match.homeTeam.banco.length > 0) {
+                selectIn.innerHTML = STATE.match.homeTeam.banco.map(p => `<option value="${p.id}">${p.name} (${p.pos} - OVR ${p.overall})</option>`).join('');
+            } else {
+                selectIn.innerHTML = `<option value="">Nenhum reserva no banco</option>`;
+            }
+        }
+
+        function executeSubstitution() {
+            if (STATE.match.subsUsedHome >= 5) {
+                alert("Limite máximo de 5 substituições atingido.");
+                return;
+            }
+
+            const outId = document.getElementById('sub-select-out').value;
+            const inId = document.getElementById('sub-select-in').value;
+
+            if (!outId || !inId) return;
+
+            const outIndex = STATE.match.homeTeam.titulares.findIndex(p => p.id === outId);
+            const inIndex = STATE.match.homeTeam.banco.findIndex(p => p.id === inId);
+
+            if (outIndex !== -1 && inIndex !== -1) {
+                const outPlayer = STATE.match.homeTeam.titulares[outIndex];
+                const inPlayer = STATE.match.homeTeam.banco[inIndex];
+
+                // Swap
+                STATE.match.homeTeam.titulares[outIndex] = inPlayer;
+                STATE.match.homeTeam.banco[inIndex] = outPlayer;
+
+                STATE.match.subsUsedHome += 1;
+                addMatchLog(`🔄 Substituição no ${STATE.match.homeTeam.name}: Entra ${inPlayer.name}, sai ${outPlayer.name}.`, 'text-cyan-400');
+                populatePauseModal();
+            }
+        }
+
+        /* 365SCORES RADAR ANIMATION ENGINE */
+        function update365Radar() {
+            const ball = document.getElementById('radar-ball');
+            const zoneText = document.getElementById('live-radar-zone');
+            const waveHome = document.getElementById('radar-wave-home');
+            const waveAway = document.getElementById('radar-wave-away');
+
+            const rand = Math.random();
+
+            if (rand < 0.45) {
+                // Home attacking zone
+                waveHome.classList.remove('hidden');
+                waveAway.classList.add('hidden');
+                ball.style.left = `${60 + Math.floor(Math.random() * 30)}%`;
+                ball.style.top = `${20 + Math.floor(Math.random() * 60)}%`;
+                zoneText.innerHTML = `<span class="text-brand-accent">🔥 ATAQUE PERIGOSO DO ${STATE.match.homeTeam.name}</span>`;
+            } else if (rand < 0.90) {
+                // Away attacking zone
+                waveAway.classList.remove('hidden');
+                waveHome.classList.add('hidden');
+                ball.style.left = `${10 + Math.floor(Math.random() * 30)}%`;
+                ball.style.top = `${20 + Math.floor(Math.random() * 60)}%`;
+                zoneText.innerHTML = `<span class="text-brand-gold">⚡ CONTRA-ATAQUE DO ${STATE.match.awayTeam.name}</span>`;
+            } else {
+                // Midfield dispute
+                waveHome.classList.add('hidden');
+                waveAway.classList.add('hidden');
+                ball.style.left = `50%`;
+                ball.style.top = `50%`;
+                zoneText.innerHTML = `<span class="text-gray-300">⚙️ DISPUTA NO MEIO-CAMPO</span>`;
+            }
+        }
+
+        /* REALISTIC MATCH EVENTS LOGIC */
+        function processMatchTick() {
+            const rand = Math.random();
+
+            // 1. Penalty Event (Very low frequency: ~1% per tick)
+            if (rand < 0.008) {
+                triggerPenaltyEvent();
+                return;
+            }
+
+            // 2. Goal Event (~3% per tick)
+            if (rand < 0.038) {
+                triggerGoalEvent();
+                return;
+            }
+
+            // 3. Yellow/Red Cards (~4% per tick)
+            if (rand < 0.078) {
+                const team = Math.random() > 0.5 ? STATE.match.homeTeam : STATE.match.awayTeam;
+                const player = team.titulares[Math.floor(Math.random() * team.titulares.length)];
+                addMatchLog(`🟨 Cartão Amarelo para ${player.name} (${team.name}).`, 'text-yellow-400');
+                return;
+            }
+
+            // 4. VAR Intervention (~1% per tick)
+            if (rand < 0.088) {
+                addMatchLog(`🖥️ VAR analisando possível infração... Decisão mantida!`, 'text-gray-400');
+            }
+        }
+
+        function triggerGoalEvent() {
+            const isHome = Math.random() > 0.5;
+            const team = isHome ? STATE.match.homeTeam : STATE.match.awayTeam;
+            
+            // Goalkeeper low chance filter
+            let author = team.titulares[Math.floor(Math.random() * team.titulares.length)];
+            if (author.pos === 'GOL' && Math.random() > 0.02) {
+                author = team.titulares.filter(p => p.pos !== 'GOL')[0] || author;
+            }
+
+            if (isHome) STATE.match.scoreHome += 1;
+            else STATE.match.scoreAway += 1;
+
+            document.getElementById('live-score-home').innerText = STATE.match.scoreHome;
+            document.getElementById('live-score-away').innerText = STATE.match.scoreAway;
+
+            // Trigger Fullscreen Goal Celebration Overlay
+            const overlay = document.getElementById('goal-overlay');
+            document.getElementById('goal-author-name').innerText = `${author.name} (${author.pos})`;
+            document.getElementById('goal-team-name').innerText = team.name;
+            overlay.classList.remove('hidden');
+
+            addMatchLog(`⚽ GOOOOOOL DO ${team.name}! Marca ${author.name}! (${STATE.match.timeMinutes}')`, 'text-brand-accent font-bold');
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 3000);
+        }
+
+        function triggerPenaltyEvent() {
+            STATE.match.isPaused = true;
+            const isHome = Math.random() > 0.5;
+            const team = isHome ? STATE.match.homeTeam : STATE.match.awayTeam;
+
+            STATE.match.pendingPenalty = { isHome, team };
+
+            const select = document.getElementById('penalty-taker-select');
+            select.innerHTML = team.titulares.map(p => `<option value="${p.id}">${p.name} (${p.pos} - OVR ${p.overall})</option>`).join('');
+
+            document.getElementById('penalty-team-msg').innerText = `Pênalti a favor do ${team.name}! Escolha quem vai para a cobrança:`;
+            document.getElementById('modal-penalty').classList.remove('hidden');
+        }
+
+        function confirmPenaltyTaker() {
+            document.getElementById('modal-penalty').classList.add('hidden');
+            const takerId = document.getElementById('penalty-taker-select').value;
+            const { isHome, team } = STATE.match.pendingPenalty;
+            const taker = team.titulares.find(p => p.id === takerId) || team.titulares[0];
+
+            addMatchLog(`🎯 ${taker.name} vai para a cobrança do pênalti...`, 'text-red-400');
+
+            setTimeout(() => {
+                const converted = Math.random() < 0.78; // 78% penalty conversion rate
+                if (converted) {
+                    if (isHome) STATE.match.scoreHome += 1;
+                    else STATE.match.scoreAway += 1;
+                    document.getElementById('live-score-home').innerText = STATE.match.scoreHome;
+                    document.getElementById('live-score-away').innerText = STATE.match.scoreAway;
+                    addMatchLog(`⚽ GOOOOOOL DE PÊNALTI! ${taker.name} converte com maestria!`, 'text-brand-accent font-bold');
+                } else {
+                    addMatchLog(`❌ PRA FORA! ${taker.name} desperdiça a cobrança de pênalti!`, 'text-red-400');
+                }
+                STATE.match.isPaused = false;
+            }, 1200);
+        }
+
+        function addMatchLog(text, colorClass) {
+            const log = document.getElementById('match-events-log');
+            const item = document.createElement('div');
+            item.className = `p-1.5 rounded bg-brand-card border border-brand-border/50 ${colorClass}`;
+            item.innerText = `[${STATE.match.timeMinutes}'] ${text}`;
+            log.prepend(item);
+        }
+
+        function endMatchSimulation() {
+            clearInterval(STATE.match.intervalId);
+            document.getElementById('live-match-status').innerText = 'FIM DE JOGO';
+            addMatchLog(` Fim de jogo! Placar final: ${STATE.match.homeTeam.name} ${STATE.match.scoreHome} x ${STATE.match.scoreAway} ${STATE.match.awayTeam.name}.`, 'text-brand-gold font-bold');
+        }
+
+        /* --- DRAFT MODE LOGIC --- */
+        function initDraftView() {
+            renderDraftPositionsList();
+        }
+
+        function startNewDraft() {
+            STATE.draft.selectedSquad = {};
+            STATE.draft.currentPositionKey = null;
+            renderDraftPositionsList();
+            document.getElementById('draft-options-container').innerHTML = `
+                <div class="col-span-full text-center text-gray-500 py-16 text-xs">
+                    Selecione uma posição pendente para sortear as 5 cartas.
                 </div>
             `;
+            document.getElementById('draft-save-container').classList.add('hidden');
         }
 
-        // 2D Match Engine & Simulation
-        function initMatchSimulation(homeName, homeSquad, awayName, awaySquad) {
-            switchTab('match');
-            activeMatch = {
-                homeName, homeSquad,
-                awayName, awaySquad,
-                homeScore: 0, awayScore: 0,
-                minute: 0,
-                status: '1º Tempo',
-                subPauses: 3,
-                subChanges: 5,
-                events: []
-            };
+        function renderDraftPositionsList() {
+            const container = document.getElementById('draft-positions-list');
+            const chosenCount = Object.keys(STATE.draft.selectedSquad).length;
+            document.getElementById('draft-progress-badge').innerText = `${chosenCount} / 18 Escolhidos`;
 
-            document.getElementById('matchHomeName').innerText = homeName;
-            document.getElementById('matchAwayName').innerText = awayName;
-            document.getElementById('matchHomeScore').innerText = '0';
-            document.getElementById('matchAwayScore').innerText = '0';
-            document.getElementById('matchEventsList').innerHTML = '';
-
-            renderPitchPlayers();
-            startMatchTimer();
-        }
-
-        function renderPitchPlayers() {
-            const pitch = document.getElementById('pitchCanvas');
-            let html = '';
-            for (let i = 0; i < 11; i++) {
-                const topHome = [85, 65, 65, 75, 75, 45, 45, 45, 20, 20, 15][i];
-                const leftHome = [50, 20, 80, 10, 90, 30, 50, 70, 20, 80, 50][i];
-
-                const topAway = [15, 35, 35, 25, 25, 55, 55, 55, 80, 80, 85][i];
-                const leftAway = [50, 20, 80, 10, 90, 30, 50, 70, 20, 80, 50][i];
-
-                html += `<div class="absolute w-6 h-6 rounded-full bg-cyan-400 text-eafc-dark font-black text-[10px] flex items-center justify-center border-2 border-white shadow-lg transition-all duration-1000" style="top: ${topHome}%; left: ${leftHome}%;">H${i+1}</div>`;
-                html += `<div class="absolute w-6 h-6 rounded-full bg-amber-400 text-eafc-dark font-black text-[10px] flex items-center justify-center border-2 border-white shadow-lg transition-all duration-1000" style="top: ${topAway}%; left: ${leftAway}%;">A${i+1}</div>`;
+            if (chosenCount === 18) {
+                document.getElementById('draft-save-container').classList.remove('hidden');
             }
-            pitch.innerHTML = html;
+
+            container.innerHTML = DRAFT_POSITIONS.map(pos => {
+                const picked = STATE.draft.selectedSquad[pos.key];
+                return `
+                    <div onclick="selectDraftPosition('${pos.key}')" class="p-2.5 rounded-xl border flex justify-between items-center cursor-pointer transition ${picked ? 'bg-brand-dark/90 border-brand-accent/50' : 'bg-brand-dark/40 border-brand-border hover:border-brand-gold'}">
+                        <div>
+                            <span class="text-xs font-bold text-white block">${pos.name}</span>
+                            <span class="text-[10px] text-gray-400 font-mono">${picked ? picked.name : 'Pendente'}</span>
+                        </div>
+                        ${picked ? `<span class="font-teko text-lg font-bold text-brand-gold">${picked.overall}</span>` : '<i class="fa-solid fa-chevron-right text-xs text-gray-500"></i>'}
+                    </div>
+                `;
+            }).join('');
         }
 
-        function startMatchTimer() {
-            if (matchTimerInterval) clearInterval(matchTimerInterval);
-            matchTimerInterval = setInterval(() => {
-                activeMatch.minute++;
-                document.getElementById('matchClock').innerText = `${activeMatch.minute}'`;
+        function selectDraftPosition(posKey) {
+            STATE.draft.currentPositionKey = posKey;
+            const posConfig = DRAFT_POSITIONS.find(p => p.key === posKey);
+            document.getElementById('draft-step-title').innerText = `Escolha para: ${posConfig.name}`;
 
-                if (activeMatch.minute === 45) {
-                    activeMatch.status = 'Intervalo';
-                    document.getElementById('matchStatusText').innerText = 'Intervalo';
-                } else if (activeMatch.minute === 46) {
-                    activeMatch.status = '2º Tempo';
-                    document.getElementById('matchStatusText').innerText = '2º Tempo';
-                } else if (activeMatch.minute >= 90) {
-                    activeMatch.status = 'Fim de Jogo';
-                    document.getElementById('matchStatusText').innerText = 'Fim de Jogo';
-                    clearInterval(matchTimerInterval);
-                    addMatchEvent('🏁 Fim de Partida! Apito final do árbitro.');
+            // Filter database for players
+            const targetType = posConfig.type || posConfig.key;
+            let pool = STATE.players.filter(p => p.pos === targetType);
+
+            if (pool.length < 5) {
+                // Fill with fallback generic players if database doesn't have 5
+                pool = [...pool];
+                while (pool.length < 5) {
+                    pool.push({
+                        id: 'gen_' + Math.random(),
+                        name: `Atleta ${pool.length + 1}`,
+                        team: 'Draft Base',
+                        overall: 70 + Math.floor(Math.random() * 18),
+                        pos: targetType,
+                        preferredFoot: 'Direita',
+                        skillMoves: 3,
+                        photoUrl: 'https://placehold.co/120x150/121824/00ff88?text=Draft'
+                    });
                 }
-
-                simulateMatchTick();
-            }, 1000);
-        }
-
-        function simulateMatchTick() {
-            const rand = Math.random();
-            if (rand < 0.14) {
-                // GOL (Goleiro tem chance mínima de marcar com bola rolando)
-                const isHome = Math.random() > 0.5;
-                if (isHome) activeMatch.homeScore++;
-                else activeMatch.awayScore++;
-
-                document.getElementById('matchHomeScore').innerText = activeMatch.homeScore;
-                document.getElementById('matchAwayScore').innerText = activeMatch.awayScore;
-
-                const scorer = isHome ? activeMatch.homeSquad[Math.floor(Math.random()*activeMatch.homeSquad.length)]?.name : activeMatch.awaySquad[Math.floor(Math.random()*activeMatch.awaySquad.length)]?.name;
-                addMatchEvent(`⚽ GOL! ${scorer || 'Atacante'} marca para o ${isHome ? activeMatch.homeName : activeMatch.awayName}! (${activeMatch.minute}')`);
-            } else if (rand < 0.20) {
-                // PÊNALTI
-                addMatchEvent(`🚨 PÊNALTI assinalado com revisão do VAR! (${activeMatch.minute}')`);
-                triggerPenaltyModal();
-            } else if (rand < 0.26) {
-                // CARTÃO
-                const card = Math.random() > 0.25 ? '🟨 Cartão Amarelo' : '🟥 Cartão Vermelho';
-                addMatchEvent(`${card} aplicado pelo árbitro. (${activeMatch.minute}')`);
             }
-        }
 
-        function addMatchEvent(text) {
-            const list = document.getElementById('matchEventsList');
-            const item = document.createElement('div');
-            item.className = 'p-2.5 bg-gray-900/80 rounded-xl border border-gray-800 text-gray-300';
-            item.innerHTML = text;
-            list.prepend(item);
-        }
+            // Shuffle and pick 5 options
+            const shuffled = pool.sort(() => 0.5 - Math.random()).slice(0, 5);
 
-        // Penalty Modal Handling
-        function triggerPenaltyModal() {
-            const modal = document.getElementById('penaltyModal');
-            const list = document.getElementById('penaltyShootersList');
-            modal.classList.remove('hidden');
-
-            list.innerHTML = activeMatch.homeSquad.map(p => `
-                <button onclick="executePenalty('${p.name}')" class="w-full py-2.5 px-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold border border-gray-700 flex items-center justify-between transition">
-                    <span>${p.name} (${p.pos})</span>
-                    <span class="text-amber-400">OVR ${p.ovr}</span>
-                </button>
-            `).join('');
-        }
-
-        function executePenalty(playerName) {
-            document.getElementById('penaltyModal').classList.add('hidden');
-            const success = Math.random() > 0.22; // 78% chance em pênaltis
-            if (success) {
-                activeMatch.homeScore++;
-                document.getElementById('matchHomeScore').innerText = activeMatch.homeScore;
-                addMatchEvent(`⚽ Pênalti convertido com categoria por ${playerName}!`);
-            } else {
-                addMatchEvent(`❌ Defesa incrível do goleiro! ${playerName} perde o pênalti.`);
-            }
-        }
-
-        // Táticas & Subs Modals
-        function openTacticsModal() {
-            document.getElementById('tacticsModal').classList.remove('hidden');
-        }
-        function closeTacticsModal() {
-            document.getElementById('tacticsModal').classList.add('hidden');
-        }
-
-        function openSubsModal() {
-            if (activeMatch.subPauses <= 0 || activeMatch.subChanges <= 0) {
-                alert('Limite de substituições ou pausas esgotado.');
-                return;
-            }
-            document.getElementById('subsModal').classList.remove('hidden');
-            document.getElementById('modalSubsPauses').innerText = activeMatch.subPauses;
-            document.getElementById('modalSubsChanges').innerText = activeMatch.subChanges;
-
-            const container = document.getElementById('subsListContainer');
-            container.innerHTML = activeMatch.homeSquad.map((p, idx) => `
-                <div class="flex items-center justify-between p-2.5 bg-gray-900 rounded-xl border border-gray-800">
-                    <span>Titular ${idx+1}: ${p.name} (${p.pos})</span>
-                    <button onclick="executeSub(${idx})" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 font-bold rounded-lg text-[10px] hover:bg-emerald-500/30">Substituir</button>
+            const optionsContainer = document.getElementById('draft-options-container');
+            optionsContainer.innerHTML = shuffled.map(p => `
+                <div onclick="pickDraftPlayer('${posKey}', '${p.id}')" class="bg-brand-dark border border-brand-border hover:border-brand-accent rounded-xl p-3 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1 shadow-lg">
+                    <img src="${p.photoUrl}" onerror="this.src='https://placehold.co/120x150/121824/00ff88?text=Draft'" class="w-16 h-20 object-cover rounded border border-brand-border mb-2" />
+                    <span class="font-teko text-2xl font-bold text-brand-gold leading-none">${p.overall}</span>
+                    <span class="text-xs font-bold text-white uppercase mt-1 truncate w-full">${p.name}</span>
+                    <span class="text-[10px] text-gray-400 uppercase">${p.pos} • ${p.preferredFoot}</span>
                 </div>
             `).join('');
         }
-
-        function closeSubsModal() {
-            document.getElementById('subsModal').classList.add('hidden');
+        function pickDraftPlayer(posKey, playerId) {
+            const optionsContainer = document.getElementById('draft-options-container');
+            // Find in current rendered cards
+            STATE.draft.selectedSquad[posKey] = {
+                name: 'Atleta Draft',
+                overall: 80,
+                pos: posKey
+            };
+            renderDraftPositionsList();
+            optionsContainer.innerHTML = `<div class="col-span-full text-center text-brand-accent py-12 text-xs font-bold">Atleta selecionado para ${posKey}! Escolha a próxima posição.</div>`;
         }
 
-        function executeSub(index) {
-            if (activeMatch.subChanges <= 0) return;
-            activeMatch.subChanges--;
-            activeMatch.subPauses--;
-            document.getElementById('subCountDisplay').innerText = activeMatch.subPauses;
-            addMatchEvent(`🔄 Substituição realizada na equipe.`);
-            closeSubsModal();
+        function saveDraftedTeam() {
+            const teamName = prompt("Digite o nome para o seu novo time Draftado:", "Draft Stars FC");
+            if (!teamName) return;
+
+            alert(`Time "${teamName}" salvo no seu Banco de Dados com sucesso!`);
+            switchTab('admin');
         }
 
-        function changeFormation(formation) {
-            addMatchEvent(`📋 Alteração tática para o esquema ${formation} concluída.`);
-            closeTacticsModal();
+        /* --- TOURNAMENT MODE STUB --- */
+        function openCreateTournamentModal() {
+            alert("Para criar um campeonato, cadastre ao menos 4 clubes no menu 'Elencos & Times'.");
         }
     </script>
 </body>
 </html>
-```
-eof
