@@ -342,6 +342,7 @@
             font-weight: 700;
             text-transform: uppercase;
             z-index: 30;
+            transition: all 0.3s ease;
         }
 
         /* ANIMAÇÃO DE GOL OVERLAY */
@@ -433,7 +434,47 @@
         .fut-img { width: 90px; height: 90px; object-fit: contain; margin-top: 15px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
         .fut-name { font-family: var(--font-sub); font-size: 0.95rem; font-weight: 700; color: #fff; text-transform: uppercase; margin-top: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
 
-        /* CAMPO DRAFT TÁTICO */
+        /* PRANCHETA TÁTICA COM RESTRIÇÃO DE GOLEIRO */
+        .tactical-board-editor {
+            height: 380px;
+            background: linear-gradient(135deg, #1b4d2e 0%, #11331e 100%);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            position: relative;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .tactic-node-slot {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85);
+            border: 2px solid var(--neon-green);
+            padding: 4px;
+            border-radius: 8px;
+            text-align: center;
+            width: 100px;
+        }
+
+        .tactic-node-slot label {
+            font-size: 0.65rem;
+            color: var(--neon-green);
+            font-weight: 700;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .tactic-node-slot select {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            width: 100%;
+            outline: none;
+        }
+
+        /* DRAFT PITCH */
         .draft-pitch-container {
             background: var(--bg-card);
             border-radius: 20px;
@@ -620,7 +661,7 @@
                         </div>
                     </div>
 
-                    <!-- CAMPO 2D REALISTA -->
+                    <!-- CAMPO 2D REALISTA COM ATAQUE DINÂMICO -->
                     <div class="pitch-2d" id="pitch-canvas">
                         <div class="grass-stripes"></div>
                         <div class="pitch-lines-box">
@@ -632,7 +673,7 @@
                             <div class="goal-right"></div>
                         </div>
                         <div class="ball" id="match-ball"></div>
-                        <div class="attack-indicator" id="attack-tag" style="left:25px">ATAQUE MANDANTE</div>
+                        <div class="attack-indicator" id="attack-tag">AGUARDANDO INÍCIO</div>
                     </div>
 
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -676,7 +717,7 @@
 
         <!-- TAB: TIMES -->
         <section id="tab-teams" class="tab-content">
-            <div style="display:grid; grid-template-columns: 350px 1fr; gap:1.5rem;">
+            <div style="display:grid; grid-template-columns: 380px 1fr; gap:1.5rem;">
                 <div class="pitch-card">
                     <h3 style="font-family:var(--font-title); font-size:1.8rem" id="team-form-title">GERENCIAR CLUBE</h3>
                     <form id="form-team" onsubmit="saveTeam(event)">
@@ -701,13 +742,21 @@
                         </div>
                         <div class="form-group">
                             <label>Formação Padrão</label>
-                            <select id="team-formation" class="form-control">
+                            <select id="team-formation" class="form-control" onchange="renderTeamTacticalEditor()">
                                 <option value="4-3-3">4-3-3</option>
                                 <option value="4-4-2">4-4-2</option>
                                 <option value="3-5-2">3-5-2</option>
                             </select>
                         </div>
-                        <div style="display:flex; gap:0.5rem;">
+
+                        <div class="form-group">
+                            <label>Prancheta Tática (Posicionamento dos Titulares)</label>
+                            <div class="tactical-board-editor" id="team-tactic-editor">
+                                <!-- Preenchido dinamicamente com restrição de GK -->
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
                             <button type="submit" class="btn" style="flex:1">Salvar Clube</button>
                             <button type="button" class="btn btn-secondary" id="cancel-team-edit" onclick="resetTeamForm()" style="display:none">Cancelar</button>
                         </div>
@@ -837,6 +886,7 @@
 
         let editingTeamId = null;
         let editingPlayerId = null;
+        let currentTeamTactics = {}; // Armazena a escalação tática custom do time em edição
 
         let matchState = {
             running: false,
@@ -870,6 +920,7 @@
             renderPlayers();
             populateTeamDropdowns();
             renderLogs();
+            renderTeamTacticalEditor();
         };
 
         // CADASTRO OBRIGATÓRIO DE TÉCNICO & VALIDAÇÕES
@@ -883,7 +934,6 @@
                 return;
             }
 
-            // Verificar se contém palavras ofensivas
             const lowerName = inputName.toLowerCase();
             const hasProfanity = PROFANE_WORDS.some(word => lowerName.includes(word));
             if (hasProfanity) {
@@ -929,7 +979,6 @@
             `).join('');
         }
 
-        // UPLOAD DE IMAGEM LOCAL
         function handleFileUpload(event, targetInputId) {
             const file = event.target.files[0];
             if (file) {
@@ -939,6 +988,50 @@
                 };
                 reader.readAsDataURL(file);
             }
+        }
+
+        // PRANCHETA TÁTICA DO TIME COM RESTRIÇÃO EXCLUSIVA DE GOLEIRO (GK)
+        function renderTeamTacticalEditor() {
+            const container = document.getElementById('team-tactic-editor');
+            if(!container) return;
+
+            const formation = document.getElementById('team-formation').value;
+            // Coordenadas padrão para 11 posições na prancha
+            let positionsConfig = [
+                { id: 'pos_0', label: 'GOL (GK)', top: '82%', left: '50%', isGK: true },
+                { id: 'pos_1', label: 'LE', top: '60%', left: '15%', isGK: false },
+                { id: 'pos_2', label: 'ZAG', top: '65%', left: '38%', isGK: false },
+                { id: 'pos_3', label: 'ZAG', top: '65%', left: '62%', isGK: false },
+                { id: 'pos_4', label: 'LD', top: '60%', left: '85%', isGK: false },
+                { id: 'pos_5', label: 'MEI', top: '42%', left: '30%', isGK: false },
+                { id: 'pos_6', label: 'MEI', top: '42%', left: '50%', isGK: false },
+                { id: 'pos_7', label: 'MEI', top: '42%', left: '70%', isGK: false },
+                { id: 'pos_8', label: 'ATA', top: '18%', left: '20%', isGK: false },
+                { id: 'pos_9', label: 'ATA', top: '15%', left: '50%', isGK: false },
+                { id: 'pos_10', label: 'ATA', top: '18%', left: '80%', isGK: false }
+            ];
+
+            let html = '<div class="grass-stripes"></div>';
+            positionsConfig.forEach(pos => {
+                const assignedPlayerId = currentTeamTactics[pos.id] || '';
+                // Filtrar atletas: se for GK, apenas pos === 'GK'. Senão, qualquer atleta do banco geral ou do time.
+                let filteredPlayers = players.filter(p => pos.isGK ? p.pos === 'GK' : true);
+
+                html += `
+                    <div class="tactic-node-slot" style="top:${pos.top}; left:${pos.left};">
+                        <label>${pos.label}</label>
+                        <select onchange="updateTacticalSlot('${pos.id}', this.value)">
+                            <option value="">(Vazio)</option>
+                            ${filteredPlayers.map(p => `<option value="${p.id}" ${assignedPlayerId === p.id ? 'selected' : ''}>${p.name} (${p.ovr})</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function updateTacticalSlot(slotId, playerId) {
+            currentTeamTactics[slotId] = playerId;
         }
 
         // GERENCIAMENTO DE TIMES
@@ -951,6 +1044,7 @@
                 code: document.getElementById('team-code').value.toUpperCase(),
                 logo: document.getElementById('team-logo-url').value || 'https://via.placeholder.com/100',
                 formation: document.getElementById('team-formation').value,
+                tactics: currentTeamTactics,
                 author: currentUser
             };
 
@@ -979,19 +1073,24 @@
             document.getElementById('team-code').value = t.code;
             document.getElementById('team-logo-url').value = t.logo;
             document.getElementById('team-formation').value = t.formation;
+            currentTeamTactics = t.tactics || {};
             document.getElementById('team-form-title').innerText = "EDITAR CLUBE";
             document.getElementById('cancel-team-edit').style.display = 'inline-block';
+            renderTeamTacticalEditor();
         }
 
         function resetTeamForm() {
             editingTeamId = null;
+            currentTeamTactics = {};
             document.getElementById('form-team').reset();
             document.getElementById('team-form-title').innerText = "GERENCIAR CLUBE";
             document.getElementById('cancel-team-edit').style.display = 'none';
+            renderTeamTacticalEditor();
         }
 
         function renderTeams() {
             const grid = document.getElementById('teams-grid');
+            if(!grid) return;
             grid.innerHTML = teams.map(t => {
                 const teamPlayersCount = players.filter(p => p.teamId === t.id).length;
                 return `
@@ -1043,6 +1142,7 @@
             renderPlayers();
             renderTeams();
             updateDashboardStats();
+            renderTeamTacticalEditor();
         }
 
         function editPlayer(id) {
@@ -1070,6 +1170,7 @@
 
         function renderPlayers() {
             const grid = document.getElementById('players-grid');
+            if(!grid) return;
             grid.innerHTML = players.map(p => `
                 <div class="fut-card" onclick="editPlayer('${p.id}')" title="Clique para editar">
                     <div class="fut-ovr">${p.ovr}</div>
@@ -1081,7 +1182,10 @@
         }
 
         function populateTeamDropdowns() {
-            const options = teams.map(t => `<option value="${t.id}">${t.name} (${t.code})</option>`).join('');
+            const options = teams.length > 0 
+                ? teams.map(t => `<option value="${t.id}">${t.name} (${t.code})</option>`).join('')
+                : `<option value="">Nenhum time cadastrado</option>`;
+            
             const selPlayer = document.getElementById('player-team-select');
             const selHome = document.getElementById('select-home-team');
             const selAway = document.getElementById('select-away-team');
@@ -1102,7 +1206,7 @@
             if(matchState.awayTeam) document.getElementById('match-away-logo').src = matchState.awayTeam.logo;
         }
 
-        // MOTOR DE SIMULAÇÃO DE PARTIDA
+        // MOTOR DE SIMULAÇÃO DE PARTIDA & ATAQUE DINÂMICO
         function toggleSimulation() {
             if(!matchState.homeTeam || !matchState.awayTeam) {
                 alert("Selecione os dois times para iniciar a partida!");
@@ -1128,7 +1232,20 @@
             matchState.time += 1;
             document.getElementById('match-time').innerText = `${String(matchState.time).padStart(2,'0')}:00`;
 
-            // Movimentação realista no campo 2D
+            // Indicador de Ataque Dinâmico alternando entre mandante e visitante[cite: 1]
+            const isHomeAttack = Math.random() > 0.5;
+            const attackTag = document.getElementById('attack-tag');
+            if (isHomeAttack) {
+                attackTag.innerText = `ATAQUE: ${matchState.homeTeam.name.toUpperCase()}`;
+                attackTag.style.borderColor = 'var(--neon-green)';
+                attackTag.style.color = 'var(--neon-green)';
+            } else {
+                attackTag.innerText = `ATAQUE: ${matchState.awayTeam.name.toUpperCase()}`;
+                attackTag.style.borderColor = 'var(--neon-blue)';
+                attackTag.style.color = 'var(--neon-blue)';
+            }
+
+            // Movimentação da bola
             const ball = document.getElementById('match-ball');
             const randX = Math.random() * 84 + 8;
             const randY = Math.random() * 80 + 10;
@@ -1137,17 +1254,15 @@
 
             const rand = Math.random();
             if(rand < 0.04) {
-                // GOL
-                const isHome = Math.random() > 0.5;
-                if(isHome) matchState.scoreHome++; else matchState.scoreAway++;
+                const isHomeGoal = isHomeAttack;
+                if(isHomeGoal) matchState.scoreHome++; else matchState.scoreAway++;
                 document.getElementById('score-home').innerText = matchState.scoreHome;
                 document.getElementById('score-away').innerText = matchState.scoreAway;
-                const teamName = isHome ? matchState.homeTeam.name : matchState.awayTeam.name;
+                const teamScored = isHomeGoal ? matchState.homeTeam.name : matchState.awayTeam.name;
                 
-                triggerGoalAnimation(teamName);
-                addTicker(`⚽ GOL DO ${teamName.toUpperCase()}! (${matchState.time}')`);
+                triggerGoalAnimation(teamScored);
+                addTicker(`⚽ GOL DO ${teamScored.toUpperCase()}! (${matchState.time}')`);
             } else if(rand < 0.055) {
-                // Pênalti Raro
                 pauseSimulation();
                 populatePenaltyTaker();
                 document.getElementById('modal-penalty').classList.add('active');
@@ -1171,6 +1286,7 @@
 
         function addTicker(text) {
             const list = document.getElementById('match-ticker');
+            if(!list) return;
             list.innerHTML = `<div class="ticker-item"><span>⏱️</span> ${text}</div>` + list.innerHTML;
         }
 
@@ -1185,15 +1301,19 @@
 
         function executePenalty() {
             document.getElementById('modal-penalty').classList.remove('active');
-            const isHome = Math.random() > 0.3; // 70% de chance de converter pênalti
-            if(isHome) matchState.scoreHome++; else matchState.scoreAway++;
-            document.getElementById('score-home').innerText = matchState.scoreHome;
-            document.getElementById('score-away').innerText = matchState.scoreAway;
-            addTicker(`⚽ Pênalti cobrado com sucesso! (${matchState.time}')`);
+            const isGoal = Math.random() > 0.3;
+            if(isGoal) {
+                if(Math.random() > 0.5) matchState.scoreHome++; else matchState.scoreAway++;
+                document.getElementById('score-home').innerText = matchState.scoreHome;
+                document.getElementById('score-away').innerText = matchState.scoreAway;
+                addTicker(`⚽ Pênalti convertido com sucesso! (${matchState.time}')`);
+            } else {
+                addTicker(`❌ Pênalti Perdido / Defendido pelo Goleiro! (${matchState.time}')`);
+            }
             toggleSimulation();
         }
 
-        // SISTEMA DE SUBSTITUIÇÕES CORRIGIDO
+        // SISTEMA DE SUBSTITUIÇÕES COM PAUSA (MÁX 3 PAUSAS E 5 TROCAS)
         function openSubModal(teamSide) {
             if(matchState.running) {
                 alert("Você precisa pausar a partida para realizar substituições!");
@@ -1281,9 +1401,8 @@
 
             const targetPos = draftState.positions[draftState.currentPosIndex];
             let available = players.filter(p => p.pos === targetPos);
-            if(available.length === 0) available = players; // fallback
+            if(available.length === 0) available = players;
 
-            // Embaralhar e pegar até 5
             const options = available.sort(() => 0.5 - Math.random()).slice(0, 5);
 
             const container = document.getElementById('draft-pick-area');
@@ -1316,17 +1435,17 @@
         function renderDraftTacticalPitch() {
             const pitch = document.getElementById('draft-tactical-pitch');
             const coords = [
-                {top: '85%', left: '50%'}, // GK
-                {top: '65%', left: '15%'}, // LB
-                {top: '68%', left: '38%'}, // CB
-                {top: '68%', left: '62%'}, // CB
-                {top: '65%', left: '85%'}, // RB
-                {top: '45%', left: '35%'}, // CM
-                {top: '45%', left: '65%'}, // CM
-                {top: '30%', left: '50%'}, // CAM
-                {top: '15%', left: '20%'}, // ST
-                {top: '15%', left: '80%'}, // ST
-                {top: '30%', left: '15%'}  // LW
+                {top: '85%', left: '50%'},
+                {top: '65%', left: '15%'},
+                {top: '68%', left: '38%'},
+                {top: '68%', left: '62%'},
+                {top: '65%', left: '85%'},
+                {top: '45%', left: '35%'},
+                {top: '45%', left: '65%'},
+                {top: '30%', left: '50%'},
+                {top: '15%', left: '20%'},
+                {top: '15%', left: '80%'},
+                {top: '30%', left: '15%'}
             ];
 
             let html = '<div class="grass-stripes"></div>';
