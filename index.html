@@ -299,7 +299,7 @@ const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){re
    Cole aqui a URL do seu banco, sem barra no final. Ex: https://meu-projeto-default-rtdb.firebaseio.com
    Com a URL preenchida, TODOS os dados (clubes, atletas, ligas, campeonato, logs) ficam salvos na nuvem,
    iguais para qualquer técnico e qualquer dispositivo. Vazio = salva só neste aparelho. */
-const CLOUD_URL='';
+const CLOUD_URL='https://stars-simulator-default-rtdb.firebaseio.com/';
 const CK=['stars_teams','stars_players','stars_logs','stars_leagues','stars_season'];
 const pushT={};let inflight=0;
 const setSync=t=>{const e=document.getElementById('sync');if(e)e.textContent=t};
