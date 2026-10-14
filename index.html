@@ -178,7 +178,7 @@ h2.t{font-size:2.4rem}h3.t{font-size:1.7rem;margin-bottom:.8rem}
 <button class="nav-btn" data-tab="players">Atletas</button>
 <button class="nav-btn" id="nav-logs" data-tab="logs" style="display:none">Logs</button>
 </nav>
-<div class="user-badge">👤 <span id="user-name">Técnico</span></div>
+<div class="user-badge"><span id="sync" style="font-size:.72rem;color:var(--muted)"></span>👤 <span id="user-name">Técnico</span></div>
 </header>
 
 <main>
@@ -295,7 +295,45 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PH='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" rx="14" fill="#222a35"/><circle cx="50" cy="38" r="16" fill="#3d4757"/><path d="M18 92a32 28 0 0 1 64 0z" fill="#3d4757"/></svg>');
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
-const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Armazenamento cheio. Use imagens menores ou URL.');return false}};
+/* ===== NUVEM (Firebase Realtime Database) =====
+   Cole aqui a URL do seu banco, sem barra no final. Ex: https://meu-projeto-default-rtdb.firebaseio.com
+   Com a URL preenchida, TODOS os dados (clubes, atletas, ligas, campeonato, logs) ficam salvos na nuvem,
+   iguais para qualquer técnico e qualquer dispositivo. Vazio = salva só neste aparelho. */
+const CLOUD_URL='';
+const CK=['stars_teams','stars_players','stars_logs','stars_leagues','stars_season'];
+const pushT={};let inflight=0;
+const setSync=t=>{const e=document.getElementById('sync');if(e)e.textContent=t};
+const store=(k,v)=>{
+  let ok=true;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){ok=false}
+  if(CLOUD_URL){clearTimeout(pushT[k]);inflight++;pushT[k]=setTimeout(()=>{cloudPut(k,v).finally(()=>inflight--)},500);return true}
+  if(!ok)toast('Armazenamento cheio. Use imagens menores ou URL.');
+  return ok;
+};
+async function cloudPut(k,v){
+  try{setSync('☁️ Salvando...');const r=await fetch(`${CLOUD_URL}/${k}.json`,{method:'PUT',body:JSON.stringify(JSON.stringify(v))});if(!r.ok)throw 0;setSync('☁️ Salvo')}
+  catch(e){setSync('⚠️ Falha ao salvar na nuvem')}
+}
+function applyCloud(k,v){
+  if(k==='stars_teams')teams=v||[];else if(k==='stars_players')players=v||[];else if(k==='stars_logs')logs=v||[];
+  else if(k==='stars_leagues')leagues=v||[];else if(k==='stars_season')season=v||null;
+}
+async function cloudPull(){
+  if(!CLOUD_URL||inflight>0)return false;
+  try{
+    setSync('☁️ Carregando...');
+    for(const k of CK){
+      const r=await fetch(`${CLOUD_URL}/${k}.json`);if(!r.ok)throw 0;
+      const s=await r.json();
+      if(s==null){const lv=localStorage.getItem(k);if(lv&&lv!=='null')await cloudPut(k,JSON.parse(lv));continue}
+      try{localStorage.setItem(k,s)}catch(e){}
+      applyCloud(k,JSON.parse(s));
+    }
+    setSync('☁️ Sincronizado');return true;
+  }catch(e){setSync('⚠️ Sem conexão com a nuvem');return false}
+}
+const idleMatch=()=>!M||M.status==='idle'||M.status==='finished';
+function cloudRefresh(){cloudPull().then(ok=>{if(ok&&idleMatch()){refreshAll();stats();renderLogs()}})}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&CLOUD_URL)cloudRefresh()});
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const rnd=(a,b)=>Math.random()*(b-a)+a;
 
@@ -935,6 +973,7 @@ function renderLeague(){
 fillSelects();renderTeams();renderPlayers();renderLogs();renderTactics();stats();onTeamChange();
 if(currentUser){$('user-name').textContent=currentUser;$('m-coach').classList.remove('on')}
 fillExtras();renderLeague();applyRole();
+if(CLOUD_URL)cloudRefresh();else setSync("💾 Só neste aparelho");
 </script>
 </body>
 </html>
