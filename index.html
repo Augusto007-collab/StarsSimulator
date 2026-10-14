@@ -1509,5 +1509,46 @@ const _rc=registerCoach;
 registerCoach=function(){_rc();if(currentUser){applyVis();refreshAll()}};
 if(currentUser){applyVis();refreshAll()}else{applyVis();refreshAll()}
 </script>
+<!-- ===== PATCH v7 • compressão de imagens (cole DEPOIS do patch v6, antes de </body>) ===== -->
+<script>
+/* Reduz uma imagem (dataURL ou URL) para no máximo `max` px e devolve um dataURL leve */
+function shrinkImg(src,max,cb,type){
+  const im=new Image();
+  im.onload=()=>{
+    const m=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(im.width*m));c.height=Math.max(1,Math.round(im.height*m));
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    cb(type==='jpeg'?c.toDataURL('image/jpeg',.8):c.toDataURL('image/webp',.8));
+  };
+  im.onerror=()=>cb(src);
+  im.src=src;
+}
+
+/* Uploads novos de foto/logo já saem reduzidos (foto 180px, logo 128px) */
+upload=function(ev,target){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>shrinkImg(e.target.result,target==='t-logo'?128:180,d=>{$(target).value=d});
+  r.readAsDataURL(f);ev.target.value='';
+};
+
+/* Otimiza o que já está salvo (fotos, logos e placas pesadas) */
+(async function(){
+  let ch=0,chAds=0;
+  const big=s=>s&&s.length>40000&&s.startsWith('data:image')&&!s.startsWith('data:image/svg');
+  const job=(o,k,max,type,isAd)=>new Promise(res=>{
+    const s=o[k];if(!big(s))return res();
+    shrinkImg(s,max,d=>{if(d.length<s.length){o[k]=d;isAd?chAds++:ch++}res()},type);
+  });
+  await Promise.all([
+    ...players.map(p=>job(p,'photo',180)),
+    ...teams.map(t=>job(t,'logo',128)),
+    ...ADS.list.map(a=>job(a,'src',600,'jpeg',true))
+  ]);
+  if(ch){store('stars_players',players);store('stars_teams',teams)}
+  if(chAds)persistAds();
+  if(ch||chAds){renderPlayers();renderTeams();renderAds();toast('Imagens otimizadas para liberar espaço de armazenamento.')}
+})();
+</script>
 </body>
 </html>
