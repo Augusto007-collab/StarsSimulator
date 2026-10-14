@@ -1225,5 +1225,289 @@ applyRole();
 try{localStorage.setItem("__t","1");localStorage.removeItem("__t")}catch(e){alert("⚠️ Seu navegador está bloqueando o armazenamento local: nada será salvo. Abra o jogo pelo GitHub Pages (https) ou fora do modo anônimo, ou conecte a nuvem no botão ☁️.")}
 cloudPull(true);
 </script>
+<!-- ===== STARS SIMULATOR • PATCH v5 ===== -->
+<style>
+/* ---- Tema cinza (UI); o gramado continua verde ---- */
+:root{--bg:#0a0d12;--card:#141922;--green:#e8edf3;--blue:#8fa3b8;--glow:rgba(255,255,255,.22)}
+.stat b,.slot label,.tick{color:inherit}
+.tick{border-left-color:#8fa3b8}
+.stat b{color:#fff}
+.slot{border-color:#8fa3b8}.slot label{color:#cfd8e3}.node{border-color:#8fa3b8}
+/* ---- Campo 3D estilo transmissão ---- */
+.stage{background:radial-gradient(ellipse at 50% 100%,transparent 35%,rgba(0,0,0,.7)),repeating-linear-gradient(90deg,#3a3f47 0 3px,#292d33 3px 7px),#222}
+.pitch{left:12%;right:12%;top:64px;--tilt:54deg;
+background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(0,0,0,.22)),repeating-linear-gradient(90deg,#3b8433 0 7.14%,#4a9a40 7.14% 14.28%);
+border:3px solid rgba(255,255,255,.95);box-shadow:0 0 0 30px #347a2e,0 40px 46px 24px rgba(0,0,0,.8)}
+.adb{position:absolute;overflow:hidden;background:linear-gradient(#10151c,#1d2530);border:1px solid #8a96a6;z-index:1}
+.adb.t{left:-3%;right:-3%;top:-34px;height:24px;transform-origin:bottom;transform:rotateX(-90deg)}
+.adb.l,.adb.r{top:-2%;bottom:-2%;width:22px}
+.adb.l{left:-52px}.adb.r{right:-52px}
+.adt{display:flex;gap:2.2rem;white-space:nowrap;font:700 .8rem var(--fs);letter-spacing:2px;color:#fff;line-height:22px;animation:adx 16s linear infinite;width:max-content}
+.adt span{padding:0 .4rem;text-shadow:0 0 6px #fff}
+.adb.l .adt,.adb.r .adt{writing-mode:vertical-rl;flex-direction:row;line-height:20px;animation:ady 16s linear infinite;width:auto}
+@keyframes adx{to{transform:translateX(-50%)}}
+@keyframes ady{to{transform:translateY(-50%)}}
+/* ---- Gols 3D de verdade (rede, travessão, traves) ---- */
+.goal3d{--gd:24px;--gh:34px;top:39%;height:22%;width:0;left:0;transform-style:preserve-3d}
+.goal3d.r{left:100%;transform:scaleX(-1)}
+.goal3d i.p3{position:absolute;display:block;background-color:rgba(255,255,255,.07);
+background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px)}
+.goal3d i.back{left:calc(var(--gd)*-1);top:0;width:var(--gh);height:100%;transform-origin:left center;transform:rotateY(-90deg)}
+.goal3d i.mouth{left:0;top:0;width:var(--gh);height:100%;transform-origin:left center;transform:rotateY(-90deg);background:none;border:4px solid #fff;border-left:0;box-shadow:0 0 8px rgba(255,255,255,.7)}
+.goal3d i.sl,.goal3d i.sr{left:calc(var(--gd)*-1);width:var(--gd);height:var(--gh);transform-origin:bottom;transform:rotateX(-90deg)}
+.goal3d i.sl{top:calc(var(--gh)*-1)}.goal3d i.sr{top:calc(100% - var(--gh))}
+.goal3d i.roof{left:calc(var(--gd)*-1);top:0;width:var(--gd);height:100%;transform:translateZ(var(--gh))}
+.goal3d.hit{animation:none}
+.goal3d.hit i.p3{animation:netfl .8s}
+@keyframes netfl{40%{background-color:rgba(255,255,255,.65)}}
+/* ---- Pênaltis redesenhados ---- */
+#m-pk{padding:.6rem}
+.pkcard{max-width:680px;max-height:94vh;overflow-y:auto;background:linear-gradient(180deg,#1a2029,#0e1218);border:1px solid rgba(255,255,255,.28)}
+.pkscore{display:grid;gap:.2rem;margin:.3rem 0}
+.pko{display:flex;gap:.4rem;overflow-x:auto;padding:.4rem 0;margin:.3rem 0}
+.pko .pkc{flex:0 0 auto;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:.3rem .8rem;font:700 .85rem var(--fs);cursor:pointer;touch-action:manipulation}
+.pko .pkc.now{background:#fff;color:#0b0f16}.pko .pkc.done{opacity:.4}.pko .pkc.fix{cursor:default}
+.pkstage{position:relative;margin:.8rem 0 0;perspective:800px}
+.pkstage .goalpk{height:200px;margin:0;border:7px solid #fff;border-bottom:0;transform:rotateX(7deg);transform-origin:bottom;box-shadow:0 0 0 2px rgba(0,0,0,.4),0 20px 30px rgba(0,0,0,.6);background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 1px,transparent 1px 9px),repeating-linear-gradient(-45deg,rgba(255,255,255,.2) 0 1px,transparent 1px 9px),linear-gradient(#222b36,#12171e)}
+.pkstage .pkzones{z-index:6}
+.pkstage .pkzones button{touch-action:manipulation;border:1px dashed rgba(255,255,255,.3)}
+.pkstage .pkzones button:active{background:rgba(255,255,255,.35)}
+.pkgrass{height:84px;background:repeating-linear-gradient(90deg,#3b8433 0 44px,#4a9a40 44px 88px);border-top:3px solid #fff;position:relative;border-radius:0 0 10px 10px;margin-bottom:.6rem}
+.pkgrass::after{content:'';position:absolute;left:50%;top:44px;width:9px;height:9px;border-radius:50%;background:#fff;transform:translateX(-50%)}
+</style>
+
+<script>
+/* ===== DB padrão ===== */
+const DEFAULT_DB='https://stars-simulator-default-rtdb.firebaseio.com';
+if(!CL.url){CL.url=DEFAULT_DB}
+
+/* ===== Menos gols ===== */
+Object.values(ATK).forEach(a=>{a.q*=.8;a.shots*=.9});
+function simFix(f){
+  const k=Math.exp((tStr(f.h)-tStr(f.a))/24),hg=pois(1.05*k),ag=pois(.85/k);
+  f.r={hg,ag};if(S.phase==='ko'&&hg===ag)f.r.pen=shootout(f);
+}
+
+/* ===== Substituições da CPU: só mesmo setor (defesa/meio/ataque), com sorteio ===== */
+const wpick=(arr,wf)=>{const w=arr.map(wf);let r=Math.random()*w.reduce((a,b)=>a+b,0);for(let i=0;i<arr.length;i++){r-=w[i];if(r<=0)return arr[i]}return arr[0]};
+const sectorOf=p=>Object.values(G).find(a=>a.includes(p.pos))||[];
+function cpuPick(l,out){
+  const g=sectorOf(out);
+  const pool=l.bench.filter(p=>out.pos==='GK'?p.pos==='GK':g.includes(p.pos));
+  return pool.length?wpick(pool,p=>Math.pow(p.ovr/70,3)+.3):null;
+}
+function cpuSub(side){
+  const l=side==='home'?M.lh:M.la;if(!l.bench.length)return;
+  const cands=l.on.filter(p=>p.pos!=='GK'&&cpuPick(l,p));
+  if(!cands.length)return;
+  const out=wpick(cands,p=>1+Math.max(0,95-p.ovr)/15);
+  const inn=cpuPick(l,out);if(inn)swapPlayer(side,out,inn,false);
+}
+
+/* ===== Gols 3D + placas de publicidade ===== */
+(function(){
+  const p=$('pitch'),ads=['STARS SIMULATOR','⚽ FUTEBOL & TÁTICA','SEU ANÚNCIO AQUI','STARS CUP'];
+  const mk=c=>{const d=document.createElement('div');d.className='adb '+c;d.innerHTML='<div class="adt">'+[...ads,...ads].map(t=>'<span>'+t+'</span>').join('')+'</div>';return d};
+  ['t','l','r'].forEach(c=>p.insertBefore(mk(c),p.firstChild));
+  const g='<i class="p3 back"></i><i class="p3 mouth"></i><i class="p3 sl"></i><i class="p3 sr"></i><i class="p3 roof"></i>';
+  $('g3d-l').innerHTML=g;$('g3d-r').innerHTML=g;
+})();
+
+/* ===== Pênaltis: nova interface e ordem por setor ===== */
+$('m-pk').innerHTML=`<div class="mcard pkcard">
+<h2 class="t" id="pk-title">Pênalti</h2><div id="pk-score" class="pkscore"></div>
+<p id="pk-info" style="margin:.3rem 0;color:var(--muted);font-size:.9rem"></p>
+<div class="pko" id="pk-order"></div>
+<div class="pkstage"><div class="goalpk" id="pk-goal"><div class="pkzones"><button onclick="pkClick(0)">↖</button><button onclick="pkClick(1)">↑</button><button onclick="pkClick(2)">↗</button><button onclick="pkClick(3)">↙</button><button onclick="pkClick(4)">↓</button><button onclick="pkClick(5)">↘</button></div><i class="pk-gk" id="pk-gk">🧤</i><i class="pk-ball" id="pk-ball"></i></div><div class="pkgrass"></div></div>
+<div id="pk-msg" class="pk-msg"></div>
+<button class="btn" id="pk-done" style="display:none;width:100%;margin-top:.6rem" onclick="pkDone()">Continuar</button></div>`;
+
+/* Ordem: batedor oficial → ataque → meio → defesa → goleiro (por último, se não for o oficial) */
+function pkOrder(side){
+  const on=PK.ls[side].on,tm=PK.teams[side];
+  if(!on.length)return[{id:'x'+side,name:'Craque do time',ovr:70,pos:'ST'}];
+  const sec=p=>G.fwd.includes(p.pos)?0:G.mid.includes(p.pos)?1:G.def.includes(p.pos)?2:3;
+  const off=on.find(p=>p.id===tm.pk);
+  const rest=on.filter(p=>p!==off).sort((a,b)=>sec(a)-sec(b)||b.ovr-a.ovr);
+  return off?[off,...rest]:rest;
+}
+function pkChips(){
+  const n=PK.kicks[PK.sd].length,ord=PK.order,idx=n%ord.length,single=PK.mode==='single'&&PK.ctl[PK.sd];
+  $('pk-order').innerHTML=ord.map((p,i)=>{
+    const now=single?p===PK.cur.kicker:i===idx,done=!single&&i<idx;
+    return `<button type="button" class="pkc ${now?'now':''} ${done?'done':''} ${single?'':'fix'}" ${single?`onclick="pkPick('${p.id}')"`:''}>${esc(p.pos)} • ${esc(p.name)} (${p.ovr})</button>`;
+  }).join('');
+}
+function pkPick(id){
+  if(!PK||PK.busy||PK.mode!=='single')return;
+  const k=PK.order.find(p=>p.id===id);if(!k)return;
+  PK.cur.kicker=k;pkChips();
+}
+function pkNext(){
+  if(PK.mode==='shootout'){const r=pkWinner();if(r)return pkEnd(r)}
+  const sd=PK.mode==='single'?PK.side:(PK.kicks.home.length<=PK.kicks.away.length?'home':'away'),ds=sd==='home'?'away':'home';
+  PK.sd=sd;PK.ds=ds;
+  const tm=PK.teams[sd];
+  PK.order=pkOrder(sd);
+  let k;
+  if(PK.mode==='single'){
+    const off=PK.order.find(p=>p.id===tm.pk);
+    k=off||[...PK.order].sort((a,b)=>b.ovr-a.ovr)[0];
+  }else k=PK.order[PK.kicks[sd].length%PK.order.length];
+  PK.cur={kicker:k};
+  $('pk-title').textContent=PK.title;$('pk-done').style.display='none';$('pk-msg').textContent='';
+  pkScore();resetPkView();pkChips();
+  const lbl=PK.mode==='shootout'?`Cobrança ${PK.kicks[sd].length+1} • `:'';
+  if(PK.ctl[sd]){
+    PK.how='shoot';PK.busy=false;
+    $('pk-info').textContent=`${lbl}${tm.name} cobra.${PK.mode==='single'?' Escolha o batedor acima e':''} Toque no canto do gol.`;
+  }else if(PK.ctl[ds]){
+    PK.how='dive';PK.busy=false;
+    $('pk-info').textContent=`${lbl}${k.name} (${tm.name}) vai cobrar. Toque no canto onde o goleiro vai pular!`;
+  }else{
+    PK.busy=true;$('pk-info').textContent=`${lbl}${k.name} (${tm.name}) vai para a bola...`;
+    setTimeout(()=>pkResolve(wr(ZW),wr(DW)),900);
+  }
+}
+function pkClick(z){
+  if(!PK||PK.busy)return;PK.busy=true;
+  if(PK.how==='shoot')pkResolve(z,wr(DW));else pkResolve(wr(ZW),z);
+}
+function pkEnd(r){
+  PK.result={winner:r,h:PK.sc.home,a:PK.sc.away};
+  $('pk-msg').textContent=`🏆 ${PK.teams[r].name} vence nos pênaltis! (${PK.sc.home} x ${PK.sc.away})`;
+  $('pk-info').textContent='';$('pk-order').innerHTML='';$('pk-done').style.display='';
+}
+</script>
+
+<!-- ===== PATCH v6 • campo estilo 365Scores + placas editáveis + times privados ===== -->
+<style>
+/* Arquibancada e campo estilo 365Scores */
+.stage::before{height:52%;background:radial-gradient(circle at 50% 120%,rgba(255,255,255,.1) 0 2px,transparent 3px) 0 0/7px 6px,linear-gradient(180deg,#15181d,#2a2e35)}
+.pitch{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.2)),repeating-linear-gradient(90deg,#3d8836 0 9.09%,#468f3d 9.09% 18.18%)}
+.pitch::after{content:'⚡ STARS SIMULATOR';position:absolute;left:50%;bottom:9%;transform:translateX(-50%);font:700 2rem var(--ft);letter-spacing:5px;color:rgba(255,255,255,.3);white-space:nowrap;pointer-events:none}
+.attack{top:auto!important;bottom:10px;left:auto!important;right:10px;transform:none!important;border-radius:4px 14px 4px 14px;padding:.4rem 1.2rem;font-size:1rem;box-shadow:0 4px 14px rgba(0,0,0,.6);z-index:40}
+.ball{box-shadow:0 0 6px rgba(255,255,255,.8),0 14px 10px rgba(0,0,0,.7)}
+/* Placas com imagens */
+.adi{position:absolute;inset:0;opacity:0;transition:opacity .6s;background-color:#10151c}
+.adi.on{opacity:1}
+.adr{position:absolute;left:0;top:0;transform-origin:0 0}
+.adb.img{border-color:#fff}
+/* Editor */
+.adrow{display:grid;grid-template-columns:120px 1fr;gap:.6rem;align-items:center;margin:.6rem 0;padding:.5rem;border:1px solid rgba(255,255,255,.12);border-radius:10px}
+.adprev{height:44px;border:1px solid #555;background:#10151c;overflow:hidden;position:relative}
+.adprev i{position:absolute;inset:0}
+.adrow .row{gap:.4rem}
+</style>
+
+<script>
+/* ===== Placas de publicidade editáveis (até 10) ===== */
+KEYS.push('stars_ads');
+let ADS=load('stars_ads',{list:[],sec:5}),adIx=0,adT=null;
+const AD_TXT=['STARS SIMULATOR','⚽ FUTEBOL & TÁTICA','SEU ANÚNCIO AQUI','STARS CUP'];
+const adTxt=()=>'<div class="adt">'+[...AD_TXT,...AD_TXT].map(t=>'<span>'+t+'</span>').join('')+'</div>';
+const adBg=a=>`background-image:url('${esc(a.src)}');background-position:center;background-repeat:${a.fit==='contain'?'repeat-x':'no-repeat'};background-size:${a.fit==='contain'?'auto '+a.zoom+'%':a.fit==='cover'?'cover':'100% 100%'};${a.fit==='contain'?'':'transform:scale('+(a.zoom/100)+')'}`;
+function fitSide(){
+  document.querySelectorAll('.adb.l .adr,.adb.r .adr').forEach(w=>{const h=w.parentNode.offsetHeight;w.style.width=h+'px';w.style.height='22px';w.style.transform='translateX(22px) rotate(90deg)'});
+}
+function renderAds(){
+  const L=ADS.list;
+  document.querySelectorAll('.adb').forEach(b=>{
+    if(!L.length){b.classList.remove('img');b.innerHTML=adTxt();return}
+    b.classList.add('img');
+    const w=L.map((a,i)=>`<div class="adi ${i===adIx%L.length?'on':''}" style="${adBg(a)}"></div>`).join('');
+    b.innerHTML=b.classList.contains('t')?w:`<div class="adr">${w}</div>`;
+  });
+  fitSide();clearInterval(adT);
+  if(L.length>1)adT=setInterval(()=>{adIx++;document.querySelectorAll('.adb').forEach(b=>{b.querySelectorAll('.adi').forEach((e,i,a)=>e.classList.toggle('on',i===adIx%a.length))})},ADS.sec*1000);
+}
+function persistAds(){
+  try{localStorage.setItem('stars_ads',JSON.stringify(ADS));localStorage.setItem('stars_ts',Date.now());cloudDirty()}
+  catch(e){toast('Armazenamento cheio: use imagens menores ou menos placas.')}
+}
+function drawAdList(){
+  const L=ADS.list;
+  $('ad-count').textContent=`${L.length}/10 placas`;
+  $('ad-list').innerHTML=L.length?L.map((a,i)=>`<div class="adrow"><div class="adprev"><i id="adp${i}" style="${adBg(a)}"></i></div>
+  <div><div class="row"><select class="fc" style="flex:1;padding:.3rem" onchange="adSet(${i},'fit',this.value)"><option value="contain" ${a.fit==='contain'?'selected':''}>Repetir na proporção</option><option value="cover" ${a.fit==='cover'?'selected':''}>Preencher (corta)</option><option value="fill" ${a.fit==='fill'?'selected':''}>Esticar</option></select><button class="btn dng sm" onclick="adDel(${i})">🗑️</button></div>
+  <div class="row" style="margin-top:.3rem"><small>Zoom ${a.zoom}%</small><input type="range" min="40" max="220" value="${a.zoom}" style="flex:1" oninput="adSet(${i},'zoom',+this.value,this)"></div></div></div>`).join(''):'<p style="color:var(--muted);font-size:.85rem">Nenhuma imagem. Sem imagens, as placas mostram o texto padrão.</p>';
+  $('ad-sec').value=ADS.sec;
+}
+function adSet(i,k,v,el){
+  ADS.list[i][k]=v;persistAds();renderAds();
+  $('adp'+i).style.cssText=adBg(ADS.list[i]);
+  if(k==='zoom'&&el)el.previousElementSibling.textContent='Zoom '+v+'%';
+}
+function adDel(i){ADS.list.splice(i,1);persistAds();renderAds();drawAdList()}
+function addAd(src){
+  if(!src)return;if(ADS.list.length>=10)return toast('Limite de 10 placas atingido.');
+  ADS.list.push({src,fit:'contain',zoom:100});persistAds();renderAds();drawAdList();
+}
+function adUrl(){const v=$('ad-url').value.trim();if(!v)return;addAd(v);$('ad-url').value=''}
+function adFile(ev){
+  const f=ev.target.files[0];if(!f)return;
+  if(ADS.list.length>=10){ev.target.value='';return toast('Limite de 10 placas atingido.')}
+  const r=new FileReader();
+  r.onload=e=>{const im=new Image();im.onload=()=>{
+    const m=Math.min(1,700/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*m);c.height=Math.round(im.height*m);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    addAd(c.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.85));
+  };im.src=e.target.result};
+  r.readAsDataURL(f);ev.target.value='';
+}
+function openAds(){drawAdList();$('m-ads').classList.add('on')}
+(function(){
+  const m=document.createElement('div');m.className='modal';m.id='m-ads';
+  m.innerHTML=`<div class="mcard" style="max-height:92vh;overflow:auto"><h2 class="t">⚙️ Configuração do jogo</h2>
+  <p style="color:var(--muted);font-size:.85rem;margin:.3rem 0 .8rem">Placas de publicidade do campo (topo e laterais). Use imagens retangulares; as placas alternam durante a partida.</p>
+  <div class="row" style="justify-content:space-between"><b id="ad-count">0/10 placas</b>
+  <label style="font-size:.8rem;color:var(--muted)">Troca a cada <select id="ad-sec" class="fc" style="width:auto;display:inline;padding:.2rem" onchange="ADS.sec=+this.value;persistAds();renderAds()"><option value="3">3s</option><option value="5">5s</option><option value="8">8s</option><option value="12">12s</option></select></label></div>
+  <div class="fg" style="margin-top:.8rem"><label>Adicionar por URL</label><div class="row" style="gap:.4rem"><input id="ad-url" class="fc" style="flex:1" placeholder="https://..."><button class="btn sm" onclick="adUrl()">Adicionar</button></div>
+  <label class="upl">📁 Enviar imagem do aparelho<input type="file" accept="image/*" hidden onchange="adFile(event)"></label></div>
+  <div id="ad-list"></div>
+  <button class="btn sec" style="width:100%;margin-top:.8rem" onclick="$('m-ads').classList.remove('on')">Fechar</button></div>`;
+  document.body.appendChild(m);
+  const b=document.createElement('button');b.className='nav-btn';b.title='Configuração do jogo';b.textContent='⚙️';b.onclick=openAds;
+  document.querySelector('header .row').insertBefore(b,document.querySelector('header .row').firstChild);
+  renderAds();window.addEventListener('resize',fitSide);
+})();
+
+/* ===== Times públicos / privados ===== */
+let HID={teams:[],players:[]};
+const visT=t=>!t.priv||t.author===currentUser;
+function applyVis(){
+  const aT=[...teams,...HID.teams],aP=[...players,...HID.players];
+  teams=aT.filter(visT);HID.teams=aT.filter(t=>!visT(t));
+  const h=new Set(HID.teams.map(t=>t.id));
+  players=aP.filter(p=>!h.has(p.teamId));HID.players=aP.filter(p=>h.has(p.teamId));
+}
+/* Ao gravar, devolve os times/atletas privados de outros técnicos para não perdê-los (nem na nuvem) */
+const _si=Storage.prototype.setItem;
+Storage.prototype.setItem=function(k,v){
+  if(this===localStorage&&(k==='stars_teams'||k==='stars_players')){
+    try{v=JSON.stringify(JSON.parse(v).concat(k==='stars_teams'?HID.teams:HID.players))}catch(e){}
+  }
+  return _si.call(this,k,v);
+};
+(function(){
+  $('t-league').closest('.fg').insertAdjacentHTML('beforebegin','<div class="fg"><label>Visibilidade do clube</label><select id="t-vis" class="fc"><option value="pub">🌐 Público (todos veem)</option><option value="priv">🔒 Privado (só o criador vê)</option></select></div>');
+})();
+const _st=saveTeam;
+saveTeam=function(e){
+  const name=$('t-name').value.trim(),vis=$('t-vis').value;
+  _st(e);
+  if(!$('t-name').value){const t=teams.find(x=>x.name===name);if(t){t.priv=vis==='priv';store('stars_teams',teams);renderTeams()}}
+};
+const _et=editTeam;editTeam=function(id){_et(id);const t=teamOf(id);if(t)$('t-vis').value=t.priv?'priv':'pub'};
+const _rt=resetTeam;resetTeam=function(){_rt();$('t-vis').value='pub'};
+const _rT=renderTeams;
+renderTeams=function(){
+  _rT();
+  $('teams-grid').querySelectorAll(':scope>.panel').forEach((el,i)=>{if(teams[i]&&teams[i].priv)el.insertAdjacentHTML('afterbegin','<div style="text-align:right;font-size:.8rem;color:var(--muted)">🔒 Privado</div>')});
+};
+const _rc=registerCoach;
+registerCoach=function(){_rc();if(currentUser){applyVis();refreshAll()}};
+if(currentUser){applyVis();refreshAll()}else{applyVis();refreshAll()}
+</script>
 </body>
 </html>
