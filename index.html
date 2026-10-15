@@ -1651,5 +1651,257 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 window.addEventListener('online',sync);
 setTimeout(sync,800);
 </script>
+<!-- ===== PATCH v9 • cole DEPOIS do v8, antes de </body> ===== -->
+<style>
+/* ---- Atletas e bola 3D: em pé sobre o gramado (não ficam mais cortados) + sombra no chão ---- */
+.dot.home,.dot.away{transform-origin:50% 100%;transform:translate(-50%,-100%) rotateX(calc(var(--tilt) * -1));transform-style:preserve-3d;box-shadow:none;overflow:visible}
+.dot.home::before,.dot.away::before{content:'';position:absolute;left:50%;top:100%;width:28px;height:12px;border-radius:50%;background:rgba(0,0,0,.55);transform:translate(-50%,-50%) rotateX(var(--tilt));pointer-events:none}
+.ball{transform-origin:50% 100%;transform:translate(-50%,-100%) rotateX(calc(var(--tilt) * -1));transform-style:preserve-3d;box-shadow:0 0 6px rgba(255,255,255,.8)}
+.ball::before{content:'';position:absolute;left:50%;top:100%;width:20px;height:9px;border-radius:50%;background:rgba(0,0,0,.6);transform:translate(-50%,-50%) rotateX(var(--tilt));pointer-events:none}
+/* ---- Painel de táticas ao vivo ---- */
+.tacstat{font-size:.82rem;color:var(--muted);margin-bottom:.5rem}.tacstat b{color:#fff}
+.tacrow{display:grid;grid-template-columns:auto 1fr 1fr;gap:.4rem;align-items:center;margin:.45rem 0;font-size:.85rem}
+.tacrow .fc{padding:.25rem .5rem;font-size:.82rem}
+.tacrow .cpu{grid-column:2/-1;color:var(--muted)}
+.tacadv{grid-column:1/-1;font-size:.82rem;color:#cfd8e3}
+</style>
+
+<script>
+/* =====================================================================
+   A) PLACAS DE PUBLICIDADE: salvas na nuvem e iguais em todos os aparelhos
+   (cada placa tem id + data de alteração; exclusões viram "lápides")
+   ===================================================================== */
+const aStr=a=>JSON.stringify({...a,_m:0});
+let ASNAP={},ASEC=ADS.sec,adT2=null;
+ADS.del=ADS.del||{};
+ADS.list.forEach(a=>{if(!a.id)a.id=uid();if(!a._m)a._m=Date.now();ASNAP[a.id]=aStr(a)});
+function adStamp(){
+  ADS.del=ADS.del||{};ADS.list=ADS.list||[];
+  const now=Date.now(),cur={};
+  ADS.list.forEach(a=>{
+    if(!a.id){a.id=uid();a._m=now}
+    else if(!(a.id in ASNAP)){if(!a._m)a._m=now}
+    else if(ASNAP[a.id]!==aStr(a))a._m=now;
+    cur[a.id]=aStr(a);
+  });
+  Object.keys(ASNAP).forEach(id=>{if(!(id in cur))ADS.del[id]=now});
+  if(ADS.sec!==ASEC){ADS.secT=now;ASEC=ADS.sec}
+  ASNAP=cur;
+}
+const _pa9=persistAds;
+persistAds=function(){adStamp();_pa9();clearTimeout(adT2);adT2=setTimeout(adSync,1500)};
+async function adSync(){
+  if(!cloudOn())return;
+  try{
+    const u=cloudUrl().replace(/\.json$/,'/ads_v2.json');
+    const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);
+    const c=(await r.json())||{};
+    const cList=Array.isArray(c.list)?c.list:Object.values(c.list||{});
+    const cDel=c.del||{};
+    adStamp();
+    const del={...cDel};Object.entries(ADS.del).forEach(([i,t])=>{del[i]=Math.max(del[i]||0,t)});
+    const loc=new Map(ADS.list.map(a=>[a.id,a])),cl=new Map(cList.map(a=>[a.id,a])),out=[];
+    ADS.list.forEach(a=>{const o=cl.get(a.id);out.push(o&&(o._m||0)>(a._m||0)?o:a)});
+    cList.forEach(a=>{if(!loc.has(a.id))out.push(a)});
+    const list=out.filter(a=>a&&a.src&&!(del[a.id]&&del[a.id]>(a._m||0))).slice(0,10);
+    const secT=Math.max(c.secT||0,ADS.secT||0),sec=((c.secT||0)>(ADS.secT||0)?c.sec:ADS.sec)||5;
+    const sig=(l,s)=>l.map(a=>a.id+':'+(a._m||0)).sort().join(',')+'|'+s;
+    if(sig(list,sec)!==sig(ADS.list,ADS.sec)){
+      ADS.list=list;ADS.sec=sec;ADS.secT=secT;ADS.del=del;ASEC=sec;
+      ASNAP={};list.forEach(a=>{ASNAP[a.id]=aStr(a)});
+      try{localStorage.setItem('stars_ads',JSON.stringify(ADS))}catch(e){toast('Armazenamento cheio: não deu para guardar todas as placas neste aparelho.')}
+      adIx=0;renderAds();if($('m-ads').classList.contains('on'))drawAdList();
+    }else ADS.del=del;
+    if(sig(list,sec)!==sig(cList,c.sec||5)||JSON.stringify(del)!==JSON.stringify(cDel)||secT!==(c.secT||0)){
+      const w=await fetch(u,{method:'PUT',body:JSON.stringify({list,del,sec,secT})});
+      if(!w.ok)throw new Error('HTTP '+w.status);
+    }
+  }catch(e){cloudStatus('⚠️ Placas: '+e.message)}
+}
+setInterval(adSync,25000);
+setTimeout(adSync,1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)adSync()});
+window.addEventListener('online',adSync);
+
+/* =====================================================================
+   B) DISPUTA DE PÊNALTIS: aviso quando o goleiro vai no canto certo e não alcança
+   ===================================================================== */
+pkResolve=function(z,g){
+  const k=PK.cur.kicker,gkp=gkOf(PK.ls[PK.ds]),gq=gkp?gkp.ovr:70;
+  let res='goal',note='';
+  const miss=[.12,.07,.12,.05,.03,.05][z]+(75-k.ovr)/500;
+  if(Math.random()<Math.max(.01,miss))res='miss';
+  else if(g===z){if(Math.random()<Math.min(.9,(z===1||z===4?.8:.72)+(gq-75)/300))res='saved';else note='O goleiro foi no canto certo, mas não alcançou a bola!'}
+  else if(Math.floor(g/3)===Math.floor(z/3)&&Math.abs(g%3-z%3)===1&&Math.random()<.1)res='saved';
+  PK.used[PK.sd].add(k.id);
+  const b=$('pk-ball');
+  if(res==='miss'){b.style.left=z%3===1?ZX[1]+'%':(z%3===0?'-8%':'108%');b.style.top=z%3===1?'-14%':ZY[z/3|0]+'%'}
+  else{b.style.left=(ZX[z%3]+(note?(z%3===2?-7:7):0))+'%';b.style.top=ZY[z/3|0]+'%'}
+  const gk=$('pk-gk');gk.style.left=ZX[g%3]+'%';gk.style.top=ZY[g/3|0]+'%';
+  const ok=res==='goal';PK.kicks[PK.sd].push(ok);if(ok)PK.sc[PK.sd]++;
+  $('pk-msg').innerHTML=ok?'⚽ GOOOL!'+(note?`<div style="font:600 .9rem var(--fb);color:#cfd8e3;margin-top:.2rem">🧤 ${note}</div>`:''):res==='saved'?'🧤 DEFENDEU!':'❌ PRA FORA!';
+  pkScore();
+  setTimeout(()=>{if(PK.mode==='single'){$('m-pk').classList.remove('on');PK.cb(res,k)}else pkNext()},note?2100:1600);
+};
+
+/* =====================================================================
+   C) TÁTICAS AO VIVO: o jogo entende as circunstâncias e você pode mudar durante a partida
+   ===================================================================== */
+DEF.eq.fat=1;DEF.press.fat=1.5;DEF.recuar.fat=.7;DEF.indiv.fat=1.25;DEF.linha.fat=1.1;
+const newStats=()=>({home:{shots:0,fouls:0,poss:0},away:{shots:0,fouls:0,poss:0}});
+function initTac(){
+  M.tac={home:{atk:(M.h&&M.h.atk)||'eq',def:(M.h&&M.h.def)||'eq'},away:{atk:(M.a&&M.a.atk)||'eq',def:(M.a&&M.a.def)||'eq'}};
+  M.tacT={home:-99,away:-99};M.st=newStats();
+}
+const _nm9=newMatch;
+newMatch=function(){_nm9();initTac();buildTac()};
+/* cansaço: cresce depois dos 55' e depende da marcação e das substituições feitas */
+const fatigue=side=>{const used=Math.min(1,(5-M.subs[side])/3),k=(DEF[M.tac[side].def]||DEF.eq).fat||1;return 1-Math.max(0,M.min-55)*.0012*(1-.5*used)*k};
+/* auxiliar técnico: lê placar, minuto, expulsões, posse e cartões e sugere ajustes */
+function advise(side){
+  const opp=side==='home'?'away':'home';
+  const my=side==='home'?M.sh:M.sa,th=side==='home'?M.sa:M.sh,lead=my-th,min=M.min;
+  const l=side==='home'?M.lh:M.la,ol=side==='home'?M.la:M.lh;
+  const men=l.on.length-ol.on.length,tot=M.st.home.poss+M.st.away.poss,poss=tot?M.st[side].poss/tot:.5;
+  const yel=l.on.filter(p=>(M.cards[p.id]||0)>=1).length,cur=M.tac[side];
+  let a=null,d=null,why='';
+  if(men<=-1){a='counter';d='recuar';why='time com jogador a menos'}
+  else if(men>=1){a='pontas';d='press';why='superioridade numérica'}
+  else if(lead<0&&min>=70){a=lead<=-2?'long':'pontas';d='linha';why=`perdendo por ${-lead} nos minutos finais`}
+  else if(lead<0&&min>=35){a='pontas';d='eq';why='precisa buscar o resultado'}
+  else if(lead>0&&min>=70){a='counter';d='recuar';why='vencendo no fim — segurar o resultado'}
+  else if(lead>=2){a='posse';d='eq';why='dois gols de vantagem — controlar o jogo'}
+  else if(tot>25&&poss<.4){a='counter';d='recuar';why='adversário domina a posse'}
+  else if(tot>25&&poss>.6&&lead<=0){a='pontas';d='eq';why='domina a posse mas não vence — abrir o jogo'}
+  if(yel>=3&&(cur.def==='press'||cur.def==='indiv')&&d!=='press'){d='eq';why+=(why?'; ':'')+'risco de expulsões (3+ amarelos)'}
+  if(!a&&!d&&min>=75&&cur.def==='press'){d='recuar';why='cansaço — recuar a marcação'}
+  if(!a&&!d)return null;
+  a=a||cur.atk;d=d||cur.def;
+  if(a===cur.atk&&d===cur.def)return null;
+  return{atk:a,def:d,why};
+}
+const tacOk=()=>M&&['running','paused','break','hold'].includes(M.status);
+function setTac(side,k,v){
+  if(!tacOk()){buildTac();return toast('Mude a tática com o jogo rolando, em pausa ou no intervalo.')}
+  M.tac[side][k]=v;M.tacT[side]=M.min;
+  const team=side==='home'?M.h:M.a,t=M.tac[side];
+  tick(`🧠 ${team.name} muda a tática: ${ATK[t.atk].n} • ${DEF[t.def].n} (${clock()})`);
+  tacTick(true);
+}
+function applyAdvice(side){
+  const v=advise(side);if(!v)return;
+  if(!tacOk())return toast('Mude a tática com o jogo rolando, em pausa ou no intervalo.');
+  M.tac[side].atk=v.atk;M.tac[side].def=v.def;M.tacT[side]=M.min;
+  tick(`🧠 ${(side==='home'?M.h:M.a).name} adota a sugestão do auxiliar (${v.why}): ${ATK[v.atk].n} • ${DEF[v.def].n} (${clock()})`);
+  buildTac();
+}
+function cpuTac(){
+  ['home','away'].forEach(s=>{
+    if(M.ctl[s]||M.min<15||M.min-M.tacT[s]<12||Math.random()>.5)return;
+    const v=advise(s);if(!v)return;
+    M.tac[s].atk=v.atk;M.tac[s].def=v.def;M.tacT[s]=M.min;
+    tick(`🧠 ${(s==='home'?M.h:M.a).name} ajusta a tática (${v.why}): ${ATK[v.atk].n} • ${DEF[v.def].n} (${clock()})`);
+  });
+}
+function buildTac(){
+  let box=$('tac-box');
+  if(!box){box=document.createElement('div');box.id='tac-box';box.className='panel';box.style.marginTop='1rem';$('sub-home').parentNode.insertAdjacentElement('afterend',box)}
+  const opt=(O,cur,ic)=>Object.entries(O).map(([k,v])=>`<option value="${k}" ${cur===k?'selected':''}>${ic} ${v.n}</option>`).join('');
+  box.innerHTML='<h3 class="t" style="font-size:1.3rem;margin-bottom:.4rem">🧠 Táticas ao vivo</h3><div id="tac-stat" class="tacstat"></div>'+['home','away'].map(s=>{
+    const team=s==='home'?M.h:M.a;if(!team)return'';
+    if(!M.ctl[s])return `<div class="tacrow"><b>${esc(team.name)}</b><span class="cpu" id="tac-cpu-${s}"></span></div>`;
+    return `<div class="tacrow"><b>${esc(team.name)}</b><select class="fc" onchange="setTac('${s}','atk',this.value)">${opt(ATK,M.tac[s].atk,'⚔')}</select><select class="fc" onchange="setTac('${s}','def',this.value)">${opt(DEF,M.tac[s].def,'🛡')}</select><div class="tacadv" id="tac-adv-${s}"></div></div>`;
+  }).join('');
+  tacTick(true);
+}
+function tacTick(force){
+  if(!M||!M.st||!$('tac-stat'))return;
+  const st=M.st,tot=st.home.poss+st.away.poss||1,ph=Math.round(st.home.poss/tot*100);
+  const h=`Posse <b>${ph}%</b> x <b>${100-ph}%</b> • Finalizações <b>${st.home.shots}</b> x <b>${st.away.shots}</b> • Faltas <b>${st.home.fouls}</b> x <b>${st.away.fouls}</b>`;
+  const sEl=$('tac-stat');if(force||sEl._h!==h){sEl.innerHTML=h;sEl._h=h}
+  ['home','away'].forEach(s=>{
+    const el=M.ctl[s]?$('tac-adv-'+s):$('tac-cpu-'+s);if(!el)return;
+    let html;
+    if(M.ctl[s]){const v=advise(s);html=v?`💡 Auxiliar: ${esc(v.why)} → <b>${ATK[v.atk].n}</b> + <b>${DEF[v.def].n}</b> <button class="btn sm" onclick="applyAdvice('${s}')">Aplicar</button>`:'<span style="color:var(--muted)">💡 Auxiliar: a tática está adequada ao momento do jogo.</span>'}
+    else html=`${ATK[M.tac[s].atk].n} • ${DEF[M.tac[s].def].n} (a CPU adapta conforme o jogo)`;
+    if(force||el._h!==html){el.innerHTML=html;el._h=html}
+  });
+}
+const _fl9=foul;
+foul=function(c){M.st[c.home?'away':'home'].fouls++;return _fl9(c)};
+const _ch9=chance;
+chance=function(c){M.st[c.home?'home':'away'].shots++;return _ch9(c)};
+/* motor: agora usa a tática ao vivo (M.tac), o cansaço e a superioridade numérica */
+step=function(){
+  if(M.inExtra)M.ex++;else M.min++;
+  $('m-time').textContent=clock();
+  const base=M.half===1?45:90;
+  if(!M.inExtra&&M.min>=base){
+    M.extraTotal=calcExtra();M.inExtra=true;M.ex=0;
+    const f=flow();
+    tick(`🔔 Acréscimos: ${M.extraTotal} minuto(s). ${f.txt}.`);
+    Q(banner({word:'+'+M.extraTotal,neutral:1,cls:'extra',sub:`${f.txt} • ${M.extraTotal} min de acréscimo`,ms:2600}));
+  }else if(M.inExtra&&M.ex>M.extraTotal){endHalf();btns();return}
+  const A=pw(M.lh,M.h),B=pw(M.la,M.a),fa=fatigue('home'),fb=fatigue('away');
+  ['fwd','mid','def'].forEach(k=>{A[k]*=fa;B[k]*=fb});
+  const ah=ATK[M.tac.home.atk]||ATK.eq,aa=ATK[M.tac.away.atk]||ATK.eq,dh=DEF[M.tac.home.def]||DEF.eq,da=DEF[M.tac.away.def]||DEF.eq;
+  const ph=Math.min(.75,Math.max(.25,.5+(A.mid-B.mid)/110+.02+ah.poss+dh.poss-aa.poss-da.poss));
+  const home=Math.random()<ph;M.attack=home?'home':'away';M.st[M.attack].poss++;
+  const c={home,atkT:home?M.h:M.a,defT:home?M.a:M.h,atkS:home?ah:aa,defS:home?da:dh,P:home?A:B,D:home?B:A,atk:home?M.lh:M.la,def:home?M.la:M.lh};
+  const tg=$('attack');tg.textContent='ATAQUE: '+c.atkT.name.toUpperCase();tg.style.color=c2(c.atkT);tg.style.background=c1(c.atkT);tg.style.borderColor=c2(c.atkT);
+  setBall(home?rnd(50,92):rnd(8,50),rnd(12,88));
+  const trail=(home?M.sa-M.sh:M.sh-M.sa)>0&&M.min>70?1.25:1,men=c.atk.on.length-c.def.on.length;
+  c.pow=.55*c.P.fwd+.45*c.P.mid+men*1.5;c.dpow=.5*c.D.def+.2*c.D.mid+.3*c.D.gk-men*1.5;
+  let pen=false;
+  if(Math.random()<Math.min(.35,.13*c.atkS.shots*Math.pow(c.pow/c.dpow,1.4)*c.defS.opp*trail)){if(chance(c)==='pen')pen=true}
+  moveDots(M.bx,M.by);
+  if(pen){tacTick();btns();return}
+  if(Math.random()<.26*c.defS.foul)foul(c);
+  if(Math.random()<.0015){const side=Math.random()<.5?'home':'away',p=pick(side==='home'?M.lh:M.la,FOULW);if(p)injure(side,p)}
+  ['home','away'].forEach(s=>{if(!M.ctl[s]&&M.subs[s]>0&&!M.inExtra&&M.min>=55&&M.min%4===0&&Math.random()<.4)cpuSub(s)});
+  if(M.min%3===0)cpuTac();
+  tacTick();btns();
+};
+
+/* =====================================================================
+   D) VAR agora também revisa EXPULSÕES e PÊNALTIS
+   ===================================================================== */
+const _gc9=giveCardTo;
+giveCardTo=function(p,side,why,forceRed){
+  if(forceRed&&Math.random()<.4){
+    const team=side==='home'?M.h:M.a;M.hs.var++;
+    tick(`📺 VAR revisa a expulsão de ${p.name} (${team.name})... (${clock()})`);
+    Q(banner({word:'VAR',neutral:1,cls:'var',sub:`Revisando a expulsão de ${p.name}`,ms:2600}));
+    if(Math.random()<.3){
+      tick(`❌ VAR ANULA a expulsão de ${p.name}! (${clock()})`);
+      Q(banner({word:'EXPULSÃO ANULADA',neutral:1,cls:'annul',sub:`${p.name} segue em campo`,ms:2300}));
+      if((M.cards[p.id]||0)===0&&Math.random()<.6)_gc9(p,side,why,false);
+      return;
+    }
+    Q(banner({word:'EXPULSÃO MANTIDA',neutral:1,sub:'Decisão confirmada pelo VAR',ms:1700}));
+  }
+  _gc9(p,side,why,forceRed);
+};
+const _mp9=matchPenalty;
+matchPenalty=function(sd){
+  const team=sd==='home'?M.h:M.a;
+  if(Math.random()<.22){
+    M.hs.var++;
+    tick(`📺 VAR revisa o pênalti a favor do ${team.name}... (${clock()})`);
+    Q(banner({word:'VAR',neutral:1,cls:'var',sub:'Revisando o pênalti',ms:2600}));
+    if(Math.random()<.35){
+      tick(`❌ VAR ANULA o pênalti! O jogo segue. (${clock()})`);
+      Q(banner({word:'PÊNALTI ANULADO',neutral:1,cls:'annul',sub:'Decisão do VAR',ms:2300}));
+      return;
+    }
+    Q(banner({word:'PÊNALTI MANTIDO',neutral:1,sub:'Decisão confirmada pelo VAR',ms:1700,after(){M.pen=sd;M.status='pen';btns();_mp9(sd)}}));
+    return;
+  }
+  _mp9(sd);
+};
+
+/* aplica ao jogo que já está carregado */
+initTac();buildTac();
+</script>
 </body>
 </html>
