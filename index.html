@@ -2268,92 +2268,585 @@ const _rr11=renderRoundBox;
 renderRoundBox=function(){_rr11();addLeagueLogos()};
 renderLeagues();
 </script>
-<!-- ===== PATCH v11 • logo e edição das ligas • cole DEPOIS do v10, antes de </body> ===== -->
+<!-- ===== PATCH v12 REVISADO • substitui o v12 antigo • ordem: v9 → v10 → v11 → v12 (sem v13) ===== -->
+<script>
+/* Checagem de pré-requisitos: sem os patches anteriores, nada é aplicado */
+window.P12_OK=(typeof roleW!=='undefined'&&typeof lgImg!=='undefined'&&typeof needET!=='undefined'&&typeof addLeagueLogos!=='undefined'&&typeof wpick!=='undefined');
+if(!window.P12_OK)alert('PATCH v12: cole os patches v10 e v11 antes deste (ordem: v9 → v10 → v11 → v12).');
+</script>
+
 <style>
-.lglogo{width:56px;height:56px;object-fit:contain;border-radius:10px;background:#16233a;flex:0 0 auto;border:1px solid rgba(255,255,255,.12)}
-.lglogo.sm{width:34px;height:34px;vertical-align:middle;margin-right:.4rem;display:inline-block;border-radius:8px}
+[data-drag]{touch-action:none;user-select:none;cursor:grab}
+.drag-ghost{position:fixed;z-index:99999;pointer-events:none;transform:translate(-50%,-50%);padding:.35rem .8rem;border-radius:999px;background:#fff;color:#0b0f16;font:700 .9rem var(--fs);box-shadow:0 8px 20px rgba(0,0,0,.6);white-space:nowrap}
+.dropzone.over{outline:2px dashed #fff;outline-offset:2px}
+.sidecol{display:flex;flex-direction:column;gap:.4rem;flex:1;min-width:0}
+.ovrcard{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.ovrcard img{width:40px;height:40px;object-fit:contain;flex:0 0 auto}
+.ovrcard .ov{margin-left:auto;text-align:right;font:700 1.9rem var(--ft);line-height:1;color:#fff;flex:0 0 auto}
+.ovrcard .ov small{display:block;font:600 .6rem var(--fb);color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+#stadinfo{text-align:center;color:var(--muted);font-size:.85rem;margin:.2rem 0 .4rem}
+#stadbg{position:absolute;inset:0;opacity:.2;background-size:cover;background-position:center;pointer-events:none;z-index:0}
+.hud{--c1:#2f6bff;--c2:#ffffff;border-radius:14px;padding:.8rem 1rem;margin:.8rem 0;border:1px solid rgba(255,255,255,.12);background:linear-gradient(90deg,color-mix(in srgb,var(--c1) 40%,#0b0f16),#0b0f16 50%,color-mix(in srgb,var(--c1) 40%,#0b0f16))}
+.hud .hdr{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.2rem}
+.hud .tm{font:700 1.2rem var(--ft);letter-spacing:2px}
+.hud .mid{font:600 .72rem var(--fb);color:rgba(255,255,255,.7);letter-spacing:2px;text-transform:uppercase}
+.hstat{display:grid;grid-template-columns:70px 1fr 70px;align-items:center;text-align:center;margin-top:.5rem}
+.hstat b{font:700 1.1rem var(--ft);color:#fff}
+.hstat span{font:600 .7rem var(--fb);color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:1px}
+.hbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.1);margin-top:.25rem}
+.hbar i{display:block;height:100%}
+.mpitch{position:relative;height:300px;border-radius:14px;border:2px solid rgba(255,255,255,.35);background:repeating-linear-gradient(90deg,#3e8d37 0 8.33%,#4b9c43 8.33% 16.66%);overflow:hidden;margin:.4rem 0}
+.mslot{position:absolute;transform:translate(-50%,-50%);width:92px;text-align:center;font:700 .72rem var(--fb);color:#fff;background:rgba(0,0,0,.65);border:2px solid #fff;border-radius:10px;padding:3px;z-index:2}
+.mslot.gk{border-color:#ffd700}
+.mslot small{display:block;color:#cfd8e3;font-size:.6rem}
+.mteam{font:700 1rem var(--fs);color:#fff;margin-top:.6rem;text-transform:uppercase;letter-spacing:1px}
+.mbench{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem}
+.face{border-radius:12px!important}
+.face img{object-fit:cover!important;object-position:50% 0!important}
+.fut .ph{width:100px;height:100px;object-fit:cover;object-position:50% 0;border-radius:10px;margin-top:12px}
 </style>
 
 <script>
-/* ===== Helpers ===== */
-const lgImg=l=>`<img class="lglogo" src="${esc(l.logo||PH)}" onerror="this.src='${PH}'" alt="">`;
+if(window.P12_OK){
 
-/* ===== Campo "Logo da liga" no formulário de criação ===== */
-$('l-tb').closest('.fg').insertAdjacentHTML('afterend',`<div class="fg"><label>Logo da liga (URL ou arquivo)</label><input id="l-logo" class="fc" placeholder="https://..."><label class="upl">📁 Upload de logo<input type="file" accept="image/*" hidden onchange="upload(event,'l-logo')"></label></div>`);
+/* =====================================================================
+   0) Utilidades
+   ===================================================================== */
+const byName=(a,b)=>a.name.localeCompare(b.name,'pt');
+const canSee=l=>!(l.custom||l.priv)||!l.author||l.author===currentUser;
+const lgOf=tid=>{const t=teamOf(tid);return t&&t.leagueId&&leagues.some(l=>l.id===t.leagueId)?t.leagueId:'__none'};
 
-saveLeague=function(e){
-  e.preventDefault();
-  const l={id:uid(),name:$('l-name').value.trim(),logo:$('l-logo').value.trim(),format:$('l-format').value,size:Math.min(32,Math.max(2,+$('l-size').value||8)),turns:+$('l-turns').value,koN:+$('l-ko').value,tb:$('l-tb').value,author:currentUser};
-  if(leagues.some(x=>x.name.toLowerCase()===l.name.toLowerCase()))return toast('Já existe uma liga com esse nome.');
-  leagues.push(l);store('stars_leagues',leagues);log(`Criou a liga: ${l.name}`);
-  $('l-name').value='';$('l-logo').value='';refreshAll();
+/* =====================================================================
+   1) CAMPO: no início, todos os círculos ficam no próprio lado, antes da linha do meio.
+      Depois do apito, seguem os eventos: posse, pressão, recuo e a bola.
+   ===================================================================== */
+moveDots=function(bx,by){
+  if(!M||!$('dots'))return;
+  const rest=M.min<1&&M.half===1&&!M.et;
+  ['home','away'].forEach(s=>{
+    const t=s==='home'?M.h:M.a;if(!t)return;
+    const F=FORMS[t.formation]||FORMS['4-3-3'],att=M.attack===s,pb=s==='home'?bx/100:1-bx/100;
+    const mapX=dE=>s==='home'?4+dE*88:96-dE*88;
+    let chaser=-1,best=1e9;
+    if(!rest)F.forEach(([lb,lat,y],i)=>{
+      if(i===0||M.hid[s].has(i))return;
+      const dd=Math.hypot(mapX((88-y)/74)-bx,lat-by);
+      if(dd<best){best=dd;chaser=i}
+    });
+    F.forEach(([lb,lat,y],i)=>{
+      const el=$(`d-${s[0]}-${i}`);if(!el)return;
+      el.style.display=M.hid[s].has(i)?'none':'';
+      const d0=(88-y)/74;
+      if(lb==='GK'){el.style.left=(s==='home'?4:96)+'%';el.style.top=Math.max(38,Math.min(62,lat+(by-lat)*.15))+'%';return}
+      if(rest){el.style.left=mapX(d0*.5)+'%';el.style.top=lat+'%';return}
+      const role=roleW(lb);
+      const push=att?role*(.08+.3*pb):-role*(.1+.14*(1-pb));
+      const dE=Math.max(0,Math.min(1,d0+push));
+      let px=mapX(dE),py=lat+(by-lat)*(.15+.25*role);
+      if(i===chaser){px+=(bx-px)*.55;py+=(by-py)*.55}
+      px+=rnd(-1.2,1.2);py+=rnd(-2,2);
+      el.style.left=Math.max(3,Math.min(97,px))+'%';el.style.top=Math.max(6,Math.min(94,py))+'%';
+    });
+  });
 };
 
-/* ===== Janela de edição da liga ===== */
-document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="m-lg"><div class="mcard" style="max-height:92vh;overflow:auto">
-<h2 class="t">✏️ Editar liga</h2>
-<p id="lg-warn" style="color:var(--gold);font-size:.85rem;margin:.3rem 0"></p>
-<input type="hidden" id="lg-id">
-<div class="fg"><label>Nome da liga</label><input id="lg-name" class="fc" maxlength="40"></div>
-<div class="fg"><label>Logo (URL ou arquivo)</label><div class="row" style="gap:.6rem;flex-wrap:nowrap"><img id="lg-prev" class="lglogo" src="${PH}" alt=""><div style="flex:1"><input id="lg-logo" class="fc" placeholder="https://..." oninput="$('lg-prev').src=this.value||PH"><label class="upl">📁 Upload de logo<input type="file" accept="image/*" hidden onchange="lgUpload(event)"></label></div></div></div>
-<div class="fg"><label>Formato</label><select id="lg-format" class="fc"><option value="points">Pontos corridos</option><option value="knockout">Mata-mata</option><option value="both">Pontos corridos + mata-mata</option></select></div>
-<div class="row" style="gap:.5rem;align-items:flex-start">
-<div class="fg" style="flex:1"><label>Nº de times</label><input type="number" id="lg-size" class="fc" min="2" max="32"></div>
-<div class="fg" style="flex:1"><label>Turnos</label><select id="lg-turns" class="fc"><option value="1">Só ida</option><option value="2">Ida e volta</option></select></div></div>
-<div class="row" style="gap:.5rem;align-items:flex-start">
-<div class="fg" style="flex:1"><label>Classificados (misto)</label><select id="lg-ko" class="fc"><option>2</option><option>4</option><option>8</option><option>16</option></select></div>
-<div class="fg" style="flex:1"><label>Desempate (mata-mata)</label><select id="lg-tb" class="fc"><option value="pen">Somente pênaltis</option><option value="et_pen">Prorrogação + pênaltis</option></select></div></div>
-<div class="row" style="margin-top:.4rem"><button class="btn" onclick="saveLeagueEdit()">Salvar alterações</button><button class="btn sec" onclick="$('m-lg').classList.remove('on')">Cancelar</button></div>
-</div></div>`);
-function lgUpload(ev){upload(ev,'lg-logo');setTimeout(()=>{$('lg-prev').src=$('lg-logo').value||PH},400)}
-function openLeagueEdit(id){
-  const L=leagues.find(x=>x.id===id);if(!L)return;
-  const locked=!!(S&&S.leagueId===id);
-  $('lg-id').value=id;$('lg-name').value=L.name;$('lg-logo').value=L.logo||'';$('lg-prev').src=L.logo||PH;
-  $('lg-format').value=L.format;$('lg-turns').value=L.turns||1;$('lg-size').value=L.size;$('lg-ko').value=L.koN||4;$('lg-tb').value=L.tb||'pen';
-  ['lg-format','lg-turns','lg-ko','lg-tb'].forEach(i=>$(i).disabled=locked);
-  $('lg-size').disabled=locked||!!L.custom;
-  $('lg-warn').textContent=locked?'Campeonato em andamento: só o nome e a logo podem ser alterados. Encerre o campeonato para mudar o formato.':(L.custom?'Liga personalizada: o número de times é definido pelos clubes escolhidos.':'');
-  $('m-lg').classList.add('on');
+/* =====================================================================
+   2) GOLEIRO EXPULSO: substituição obrigatória por outro goleiro
+      (se não houver goleiro no banco, um atleta de linha vai ao gol)
+   ===================================================================== */
+function pickOutfieldForGK(l){
+  return [...l.on].filter(p=>p.pos!=='GK').sort((a,b)=>(G.def.includes(a.pos)?0:1)-(G.def.includes(b.pos)?0:1)||a.ovr-b.ovr)[0]||null;
 }
-function saveLeagueEdit(){
-  const id=$('lg-id').value,L=leagues.find(x=>x.id===id);if(!L)return;
-  const name=$('lg-name').value.trim();
-  if(!name)return toast('Dê um nome à liga.');
-  if(leagues.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase()))return toast('Já existe uma liga com esse nome.');
-  const size=Math.min(32,Math.max(2,+$('lg-size').value||8));
-  if(!L.custom&&!$('lg-size').disabled&&size<teams.filter(t=>t.leagueId===id).length)return toast(`Esta liga já tem ${teams.filter(t=>t.leagueId===id).length} clube(s) vinculados. Escolha um número maior.`);
-  L.name=name;L.logo=$('lg-logo').value.trim();
-  if(!$('lg-format').disabled){
-    L.format=$('lg-format').value;L.turns=+$('lg-turns').value;L.koN=+$('lg-ko').value;L.tb=$('lg-tb').value;
-    if(!L.custom)L.size=size;else L.size=L.teamIds?L.teamIds.length:L.size;
+function gkSet(side,p){
+  if(!p)return;
+  const l=side==='home'?M.lh:M.la,t=side==='home'?M.h:M.a,i=l.on.indexOf(p);
+  if(i>=0)l.on[i]={...p,pos:'GK',_gk:1};
+  tick(`🧤 ${p.name} vai para o gol (${clock()})`);
+  Q(banner({word:'NOVO GOLEIRO',neutral:1,sub:`${t.name.toUpperCase()} • ${clock()}`,name:p.name,photo:p.photo||PH,ms:2200}));
+}
+function gkChoice(side){
+  const l=side==='home'?M.lh:M.la;
+  const gks=l.bench.filter(p=>p.pos==='GK');
+  if(!M.ctl[side]){
+    const out=pickOutfieldForGK(l);
+    if(gks.length&&M.subs[side]>0&&out)swapPlayer(side,out,gks[0],false);
+    else gkSet(side,out);
+    return;
   }
-  if(S&&S.leagueId===id){S.name=L.name;saveS()}
-  store('stars_leagues',leagues);log(`Editou a liga: ${L.name}`);
-  $('m-lg').classList.remove('on');refreshAll();
+  M.status='injury';btns();
+  M.gkMode=gks.length&&M.subs[side]>0?'sub':'pick';
+  openSub(side);
 }
+const _gc12=giveCardTo;
+giveCardTo=function(p,side,why,forceRed){
+  const r0=M.hs.rc,y0=M.hs.yc;
+  _gc12(p,side,why,forceRed);
+  if(M.hs.yc>y0)M.st[side].yc++;
+  if(M.hs.rc>r0){
+    M.st[side].rc++;
+    if(p.pos==='GK')Q({ms:50,hide(){},show(){gkChoice(side)}});
+  }
+};
 
-/* ===== Lista de ligas com logo, editar e jogar ===== */
-function renderLeagues(){
-  $('leagues-grid').innerHTML=leagues.length?leagues.map(l=>`<div class="panel" style="display:flex;flex-direction:column;gap:.6rem">
-  <div class="row" style="gap:.7rem;flex-wrap:nowrap">${lgImg(l)}<div><div style="font:700 1.3rem var(--fs)">${esc(l.name)}${l.custom?' <small style="color:var(--muted)">(personalizada)</small>':''}</div>
-  <div style="color:var(--muted);font-size:.85rem">${FMT[l.format]} • ${lTeams(l).length}/${l.size} times<br>${l.format==='knockout'?'Jogo único':l.turns===2?'Ida e volta':'Só ida'}${l.format==='both'?' • '+l.koN+' no mata-mata':''}${l.format!=='points'?' • desempate: '+(l.tb==='et_pen'?'prorrogação + pênaltis':'pênaltis'):''}</div></div></div>
-  <div class="row" style="gap:.4rem"><button class="btn sm" onclick="openSeason('${l.id}')">▶ Jogar</button><button class="btn sec sm" onclick="openLeagueEdit('${l.id}')">✏️ Editar</button><button class="btn dng sm" onclick="deleteLeague('${l.id}')">🗑️</button></div></div>`).join(''):'<p style="color:var(--muted)">Nenhuma liga criada. Crie uma ao lado ou use "Jogar liga" para montar uma personalizada.</p>';
-}
+/* =====================================================================
+   3) EXPULSÕES: a equipe com um a menos perde chances e recua;
+      a equipe com mais jogadores pressiona e ganha volume de chutes.
+   ===================================================================== */
+advise=function(side){
+  const my=side==='home'?M.sh:M.sa,th=side==='home'?M.sa:M.sh,lead=my-th,min=M.min;
+  const l=side==='home'?M.lh:M.la,ol=side==='home'?M.la:M.lh;
+  const men=l.on.length-ol.on.length,tot=M.st.home.poss+M.st.away.poss,poss=tot?M.st[side].poss/tot:.5;
+  const yel=l.on.filter(p=>(M.cards[p.id]||0)>=1).length,cur=M.tac[side];
+  let a=null,d=null,why='';
+  if(men<=-1){a='counter';d='recuar';why='um jogador a menos: recuar e sair em contra-ataque'}
+  else if(men>=1){a='posse';d='eq';why='superioridade numérica: controlar a bola sem abrir espaço'}
+  else if(lead<0&&min>=70){a=lead<=-2?'long':'pontas';d='linha';why=`perdendo por ${-lead} nos minutos finais`}
+  else if(lead<0&&min>=35){a='pontas';d='eq';why='precisa buscar o resultado'}
+  else if(lead>0&&min>=70){a='counter';d='recuar';why='vencendo no fim: segurar o resultado'}
+  else if(lead>=2){a='posse';d='eq';why='dois gols de vantagem: controlar o jogo'}
+  else if(tot>25&&poss<.4){a='counter';d='recuar';why='adversário domina a posse'}
+  else if(tot>25&&poss>.6&&lead<=0){a='pontas';d='eq';why='domina a posse mas não vence: abrir o jogo'}
+  if(yel>=3&&(cur.def==='press'||cur.def==='indiv')&&d!=='press'){d='eq';why+=(why?'; ':'')+'risco de expulsões (3+ amarelos)'}
+  if(!a&&!d&&min>=75&&cur.def==='press'){d='recuar';why='cansaço: recuar a marcação'}
+  if(!a&&!d)return null;
+  a=a||cur.atk;d=d||cur.def;
+  if(a===cur.atk&&d===cur.def)return null;
+  return{atk:a,def:d,why};
+};
 
-/* ===== Logo da liga também no campeonato e na rodada ===== */
-function addLeagueLogos(){
-  if(!S)return;
-  const L=leagues.find(l=>l.id===S.leagueId);if(!L)return;
-  document.querySelectorAll('#season-box h3.t, #round-box h3.t').forEach(h=>{
-    if(!h.querySelector('.lglogo'))h.insertAdjacentHTML('afterbegin',lgImg(L).replace('class="lglogo"','class="lglogo sm"'));
+/* Motor: pressão ofensiva do time com mais jogadores aumenta; do time com menos cai forte */
+step=function(){
+  if(M.inExtra)M.ex++;else M.min++;
+  $('m-time').textContent=clock();
+  if(!M.et){
+    const base=M.half===1?45:90;
+    if(!M.inExtra&&M.min>=base){
+      M.extraTotal=calcExtra();M.inExtra=true;M.ex=0;
+      const f=flow();
+      tick(`🔔 Acréscimos: ${M.extraTotal} minuto(s). ${f.txt}.`);
+      Q(banner({word:'+'+M.extraTotal,neutral:1,cls:'extra',sub:`${f.txt} • ${M.extraTotal} min de acréscimo`,ms:2600}));
+    }else if(M.inExtra&&M.ex>M.extraTotal){endHalf();btns();return}
+  }else if(M.min>=M.etLimit){endHalf();btns();return}
+  const A=pw(M.lh,M.h),B=pw(M.la,M.a),fa=fatigue('home'),fb=fatigue('away');
+  ['fwd','mid','def'].forEach(k=>{A[k]*=fa;B[k]*=fb});
+  const ah=ATK[M.tac.home.atk]||ATK.eq,aa=ATK[M.tac.away.atk]||ATK.eq,dh=DEF[M.tac.home.def]||DEF.eq,da=DEF[M.tac.away.def]||DEF.eq;
+  const men=M.lh.on.length-M.la.on.length,ha=.02+Math.min(.02,(M.h.fans||0)/4e6);
+  const ph=Math.min(.8,Math.max(.2,.5+(A.mid-B.mid)/110+ha+ah.poss+dh.poss-aa.poss-da.poss+men*.035));
+  const home=Math.random()<ph;M.attack=home?'home':'away';M.st[M.attack].poss++;
+  const mAtk=home?men:-men;
+  const c={home,atkT:home?M.h:M.a,defT:home?M.a:M.h,atkS:home?ah:aa,defS:home?da:dh,P:home?A:B,D:home?B:A,atk:home?M.lh:M.la,def:home?M.la:M.lh};
+  const tg=$('attack');tg.textContent='ATAQUE: '+c.atkT.name.toUpperCase();tg.style.color=c2(c.atkT);tg.style.background=c1(c.atkT);tg.style.borderColor=c2(c.atkT);
+  setBall(home?rnd(50,92):rnd(8,50),rnd(12,88));
+  const trail=(home?M.sa-M.sh:M.sh-M.sa)>0&&M.min>70?1.25:1;
+  c.pow=.55*c.P.fwd+.45*c.P.mid+mAtk*2.5;c.dpow=.5*c.D.def+.2*c.D.mid+.3*c.D.gk-mAtk*2.5;
+  const pressM=mAtk<0?.5:mAtk>0?1.35:1;   // com um a menos: chances caem; com mais um: pressão sobe
+  const shotP=Math.min(.4,.13*c.atkS.shots*Math.pow(c.pow/c.dpow,1.4)*c.defS.opp*trail*pressM);
+  let pen=false;
+  if(Math.random()<shotP){if(chance(c)==='pen')pen=true}
+  moveDots(M.bx,M.by);
+  if(pen){tacTick();renderStats();btns();return}
+  if(Math.random()<.26*c.defS.foul)foul(c);
+  if(Math.random()<.0015){const side=Math.random()<.5?'home':'away',p=pick(side==='home'?M.lh:M.la,FOULW);if(p)injure(side,p)}
+  ['home','away'].forEach(s=>cpuMaybeSub(s));
+  if(M.min%3===0)cpuTac();
+  tacTick();renderStats();btns();
+};
+
+/* =====================================================================
+   4) SUBSTITUIÇÕES DA CPU: de 1 a 5 por partida, cada uma conta como parada técnica.
+      Decisão por cansaço, cartões e expulsões. Limites: 5 trocas e 3 paradas.
+   ===================================================================== */
+window.cpuMaybeSub=function(side){
+  if(M.ctl[side]||M.subs[side]<=0||M.pauses[side]<=0||M.min<55||M.inExtra||M.et)return;
+  M.lcs=M.lcs||{home:-9,away:-9};
+  if(M.min-M.lcs[side]<3)return;
+  const st=M.st[side],fat=Math.max(0,M.min-55)/40;
+  const chance=.03+(M.min-55)*.003+(st.rc>0?.08:0)+(st.yc>=2?.02:0)+fat*.04;
+  if(Math.random()>chance)return;
+  const l=side==='home'?M.lh:M.la;
+  const cands=l.on.filter(p=>p.pos!=='GK'&&cpuPick(l,p));
+  if(!cands.length)return;
+  // quem sai: menor "rendimento" (cansaço e cartões pesam)
+  const score=p=>p.ovr-12*fat-6*(M.cards[p.id]||0);
+  const out=cands.sort((a,b)=>score(a)-score(b))[0],inn=cpuPick(l,out);
+  if(!inn)return;
+  M.lcs[side]=M.min;M.pauses[side]--;M.hs.pauses++;
+  tick(`⏱ ${(side==='home'?M.h:M.a).name} faz parada técnica e troca ${out.name} (${clock()})`);
+  swapPlayer(side,out,inn,false);
+};
+const _btnR=btns;
+btns=function(){
+  _btnR();
+  if(!M)return;
+  ['home','away'].forEach(k=>{
+    const p=$('pause-'+k);if(p&&(M.subs[k]<=0||M.pauses[k]<=0))p.disabled=true;
+    const sb=$('sub-'+k);if(sb&&M.subs[k]<=0)sb.disabled=true;
   });
+  renderMBoard();
+};
+const _pb12=pauseBy;
+pauseBy=function(side){
+  if(M.subs[side]<=0)return toast('Substituições esgotadas: não há mais paradas técnicas.');
+  _pb12(side);
+};
+
+/* =====================================================================
+   5) HUD DA PARTIDA: cores dos dois clubes + estatísticas no estilo EA SPORTS FC
+   ===================================================================== */
+(function(){
+  if(!$('stbox'))$('sub-home').parentNode.insertAdjacentHTML('beforebegin','<div id="stbox"></div>');
+})();
+window.renderStats=function(){
+  const box=$('stbox');if(!box||!M||!M.h||!M.a||!M.st)return;
+  const s=M.st,tot=(s.home.poss+s.away.poss)||1,hp=Math.round(s.home.poss/tot*100),ap=100-hp;
+  const share=(h,a)=>(h+a)?h/(h+a):.5;
+  const c1h=c1(M.h),c1a=c1(M.a),c2h=c2(M.h),c2a=c2(M.a);
+  const rows=[['Posse de bola',hp+'%',ap+'%',hp/100]];
+  [['Chutes','shots'],['Chutes ao alvo','on'],['Escanteios','corners'],['Faltas','fouls'],['Impedimentos','off'],['Cartões amarelos','yc'],['Cartões vermelhos','rc']].forEach(([lab,k])=>{
+    const h=s.home[k]||0,a=s.away[k]||0;rows.push([lab,h,a,share(h,a)]);
+  });
+  const sv1=Math.max(0,s.away.on-M.sa),sv2=Math.max(0,s.home.on-M.sh);
+  rows.push(['Defesas',sv1,sv2,share(sv1,sv2)]);
+  box.className='hud';box.style.setProperty('--c1',c1h);
+  box.innerHTML=`<div class="hdr"><span class="tm" style="color:${c2h}">${esc(M.h.code)}</span><span class="mid">${esc(M.h.name)} x ${esc(M.a.name)}</span><span class="tm" style="color:${c2a}">${esc(M.a.code)}</span></div>`+
+    rows.map(([lab,hv,av,sr])=>`<div class="hstat"><b>${hv}</b><span>${lab}</span><b>${av}</b></div><div class="hbar"><i style="width:${Math.round(sr*100)}%;background:${c1h}"></i><i style="flex:1;background:${c1a}"></i></div>`).join('');
+};
+const _nm12=newMatch;
+newMatch=function(){
+  _nm12();
+  if(M&&M.st)['home','away'].forEach(k=>Object.assign(M.st[k],{on:0,corners:0,yc:0,rc:0,off:0}));
+  renderStats();renderOvr();renderStadium();
+};
+const _ch12=chance;
+chance=function(c){
+  const sd=c.home?'home':'away';M.lastSh=sd;
+  if(Math.random()<.05){       // impedimento (não chega a finalizar)
+    M.st[sd].off++;
+    const w=c.atk.on.filter(p=>p.pos!=='GK')[0];
+    tick(`🚩 Impedimento marcado contra ${w?w.name:'o atacante'} (${clock()})`);
+    return;
+  }
+  return _ch12(c);
+};
+const _gi12=goalItem;
+goalItem=function(side,p,pen,varOk,as,how){
+  const b=_gi12(side,p,pen,varOk,as,how);
+  const sh=b.show;b.show=function(){M.st[side].on++;sh()};
+  return b;
+};
+const _tk12=tick;
+tick=function(text){
+  if(M&&M.st&&M.lastSh&&/defende!/.test(text))M.st[M.lastSh].on++;
+  if(M&&M.st&&/Escanteio cobrado/.test(text))M.st[M.attack].corners++;
+  _tk12(text);
+};
+
+/* =====================================================================
+   6) ESCALAÇÃO ARRASTANDO
+      - Pré-jogo: campo tático da aba Times (arraste do banco para a posição, ou troque)
+      - Durante a pausa: campo tático da partida (arraste reserva sobre a posição = substituição)
+   ===================================================================== */
+(function(){
+  if(!$('mboard')){const b=document.createElement('div');b.id='mboard';b.style.display='none';$('sub-home').parentNode.insertAdjacentElement('beforebegin',b)}
+})();
+let mSig='';
+function renderMBoard(){
+  const box=$('mboard');if(!box||!M||!M.h||!M.a)return;
+  const show=['paused','break','injury'].includes(M.status);
+  box.style.display=show?'block':'none';
+  if(!show){box.innerHTML='';mSig='';return}
+  const sig=M.status+'|'+M.subs.home+M.subs.away+M.pauses.home+M.pauses.away+'|'+M.lh.on.map(p=>p.id).join()+'|'+M.la.on.map(p=>p.id).join()+'|'+M.lh.bench.map(p=>p.id).join()+'|'+M.la.bench.map(p=>p.id).join();
+  if(sig===mSig)return;   // não recria enquanto o usuário arrasta
+  mSig=sig;
+  box.innerHTML=['home','away'].filter(s=>M.ctl[s]).map(s=>{
+    const l=s==='home'?M.lh:M.la,t=s==='home'?M.h:M.a,F=FORMS[t.formation]||FORMS['4-3-3'];
+    const slots=F.map(([lb,x,y],i)=>{
+      const p=l.on[i];
+      return `<div class="mslot dropzone ${lb==='GK'?'gk':''}" data-drop="m${s}:${i}" style="left:${x}%;top:${y}%">${p?`<span data-drag="${p.id}" data-ctx="mt" data-src="slot" style="cursor:grab">${esc(p.name.split(' ').pop())}</span><small>${esc(p.pos)} ${p.ovr}</small>`:'<small>vazio</small>'}</div>`;
+    }).join('');
+    const bench=l.bench.map(p=>`<span class="chip on" data-drag="${p.id}" data-ctx="mt" data-src="bench" style="cursor:grab">${esc(p.pos)} • ${esc(p.name)} (${p.ovr})</span>`).join('')||'<span style="color:var(--muted)">Sem reservas</span>';
+    return `<div class="mteam">${esc(t.name)} • trocas ${M.subs[s]} • paradas ${M.pauses[s]}</div><div class="mpitch">${slots}</div><div class="mbench">${bench}</div>`;
+  }).join('');
 }
-const _rs11=renderSeason;
-renderSeason=function(){_rs11();addLeagueLogos()};
-const _rr11=renderRoundBox;
-renderRoundBox=function(){_rr11();addLeagueLogos()};
-renderLeagues();
+function mDrop(pid,src,drop){
+  if(!drop||drop[0]!=='m')return;
+  const [side,iStr]=drop.slice(1).split(':');const i=+iStr;
+  if(!['paused','break','injury'].includes(M.status))return toast('Substituições só com o jogo parado.');
+  const l=side==='home'?M.lh:M.la;
+  if(src==='bench'){
+    const inn=l.bench.find(x=>x.id===pid),out=l.on[i];
+    if(!inn||!out)return;
+    if(M.subs[side]<=0)return toast('Limite de 5 substituições esgotado.');
+    if(inn.pos==='GK'&&out.pos!=='GK')return toast('O goleiro reserva só pode entrar no gol.');
+    if(out.pos==='GK'&&inn.pos!=='GK')return toast('Só um goleiro pode substituir o goleiro.');
+    swapPlayer(side,out,inn,true);
+    return;
+  }
+  // troca de posição entre dois titulares (sem usar substituição)
+  const j=l.on.findIndex(x=>x.id===pid);
+  if(j<0||j===i||!l.on[i])return;
+  const a=l.on[j],b=l.on[i];
+  if((a.pos==='GK'&&i!==0)||(b.pos==='GK'&&j!==0))return toast('O goleiro fica na posição de GK.');
+  l.on[j]=b;l.on[i]=a;
+  tick(`🔁 ${(side==='home'?M.h:M.a).name}: ${a.name} e ${b.name} trocam de posição (${clock()})`);
+  mSig='';renderMBoard();
+}
+renderTactics=function(){
+  const box=$('t-board');if(!box)return;
+  const f=FORMS[$('t-form').value]||FORMS['4-3-3'];
+  const roster=editTeamId?players.filter(p=>p.teamId===editTeamId):[];
+  let h='<div class="stripes"></div>';
+  if(!editTeamId)h+='<div class="hint">Salve o clube, cadastre os atletas e clique em Editar para escalar os titulares.</div>';
+  f.forEach(([lb,x,y],i)=>{
+    const cur=roster.find(p=>p.id===tactics['s'+i]);
+    const used=new Set(Object.entries(tactics).filter(([k])=>k!=='s'+i).map(([,v])=>v));
+    const opts=roster.filter(p=>(i===0?p.pos==='GK':true)&&!used.has(p.id)).sort(byPos);
+    h+=`<div class="slot dropzone ${i===0?'gk':''}" data-drop="${i}" style="left:${x}%;top:${y}%">
+      <label ${cur?`data-drag="${cur.id}" data-ctx="tac" style="cursor:grab"`:''}>${i===0?'GK':lb}${cur?' • '+esc(cur.name.split(' ').pop()):''}</label>
+      <select onchange="tactics['s${i}']=this.value;renderTactics()"><option value="">(vazio)</option>${opts.map(p=>`<option value="${p.id}" ${tactics['s'+i]===p.id?'selected':''}>${esc(p.name)} (${p.ovr})</option>`).join('')}</select></div>`;
+  });
+  box.innerHTML=h;
+  const st=new Set(Object.values(tactics)),bench=roster.filter(p=>!st.has(p.id)).sort(byPos);
+  const tb=$('t-bench');
+  tb.className='chips dropzone';tb.dataset.drop='bench';
+  tb.innerHTML=editTeamId?`<div style="width:100%;color:var(--muted);font-size:.8rem">BANCO (${bench.length}) — arraste um atleta para cá para tirá-lo do time titular</div>`+bench.map(p=>`<span class="chip on" data-drag="${p.id}" data-ctx="tac" style="cursor:grab">${esc(p.pos)} • ${esc(p.name)} (${p.ovr})</span>`).join(''):'';
+};
+function tacDrop(pid,d){
+  if(!editTeamId)return;
+  const p=players.find(x=>x.id===pid);if(!p)return;
+  if(d==='bench'){Object.keys(tactics).forEach(k=>{if(tactics[k]===pid)delete tactics[k]});return renderTactics()}
+  const i=+d;if(isNaN(i))return;
+  if(i===0&&p.pos!=='GK')return toast('O goleiro precisa ser um atleta GK.');
+  let j=-1;Object.keys(tactics).forEach(k=>{if(tactics[k]===pid)j=+k.slice(1)});
+  if(j===i)return;
+  const old=tactics['s'+i]||'';
+  if(j===0&&old){const op=players.find(x=>x.id===old);if(op&&op.pos!=='GK')return toast('Só um goleiro pode ocupar a posição do GK.')}
+  tactics['s'+i]=pid;
+  if(j>=0)tactics['s'+j]=old;
+  renderTactics();
+}
+/* Arrastar e soltar (mouse e toque) */
+const dropAt=(x,y)=>{const el=document.elementFromPoint(x,y);return el?el.closest('.dropzone'):null};
+document.addEventListener('pointerdown',e=>{
+  const s=e.target.closest&&e.target.closest('[data-drag]');if(!s)return;
+  const ctx=s.dataset.ctx,id=s.dataset.drag,src=s.dataset.src;
+  let sx=e.clientX,sy=e.clientY,moved=false,g=null;
+  const mv=ev=>{
+    if(!moved){if(Math.hypot(ev.clientX-sx,ev.clientY-sy)<6)return;moved=true;g=document.createElement('div');g.className='drag-ghost';g.textContent=s.textContent.trim();document.body.appendChild(g)}
+    g.style.left=ev.clientX+'px';g.style.top=ev.clientY+'px';
+    document.querySelectorAll('.dropzone.over').forEach(x=>x.classList.remove('over'));
+    const t=dropAt(ev.clientX,ev.clientY);if(t)t.classList.add('over');
+  };
+  const up=ev=>{
+    window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);
+    if(g)g.remove();
+    document.querySelectorAll('.dropzone.over').forEach(x=>x.classList.remove('over'));
+    if(!moved)return;
+    const t=dropAt(ev.clientX,ev.clientY);if(!t)return;
+    if(ctx==='tac')tacDrop(id,t.dataset.drop);
+    else if(ctx==='mt')mDrop(id,src,t.dataset.drop);
+    else if(ctx==='sub')subDrop(id,t.dataset.drop);
+  };
+  window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);
+});
+
+/* Janela de substituição (lesão e goleiro expulso) também arrastável */
+function subDrop(pid,drop){
+  if(!drop||drop[0]!=='o'||!M)return;
+  const oid=drop.slice(1),side=M.side,l=side==='home'?M.lh:M.la;
+  if(M.gkMode==='pick'){const p=l.on.find(x=>x.id===oid);if(!p)return;closeSub();gkSet(side,p);return}
+  if(!pid)return;
+  $('sub-out').value=oid;$('sub-in').value=pid;confirmSub();
+}
+window.subPick=function(oid){subDrop('','o'+oid)};
+function sdBuild(outs,ins,mode){
+  let box=$('sub-drag');
+  const fg=$('sub-out').closest('.fg');
+  if(!box){box=document.createElement('div');box.id='sub-drag';fg.parentNode.insertBefore(box,fg)}
+  fg.style.display='none';$('sub-in').closest('.fg').style.display='none';
+  const outHtml=outs.map(p=>`<div class="chip dropzone" data-drop="o${p.id}" style="display:block;${mode==='pick'?'cursor:pointer':''}" ${mode==='pick'?`onclick="subPick('${p.id}')"`:''}>${esc(p.pos)} • ${esc(p.name)} (${p.ovr})</div>`).join('');
+  const inHtml=ins.map(p=>`<div class="chip on" data-drag="${p.id}" data-ctx="sub" style="display:block;cursor:grab">${esc(p.pos)} • ${esc(p.name)} (${p.ovr})</div>`).join('')||'<span style="color:var(--muted)">Nenhum reserva disponível.</span>';
+  box.innerHTML=`<p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem">${mode==='pick'?'Sem goleiro no banco: toque no atleta de linha que vai para o gol.':'Arraste um reserva sobre o jogador que sai.'}</p>
+  <div class="row" style="gap:.8rem;align-items:flex-start;flex-wrap:nowrap">
+    <div style="flex:1;min-width:0"><div style="color:var(--muted);font-size:.8rem;text-transform:uppercase;margin-bottom:.3rem">Em campo (sai)</div><div style="display:flex;flex-direction:column;gap:.35rem">${outHtml}</div></div>
+    ${mode==='pick'?'':`<div style="flex:1;min-width:0"><div style="color:var(--muted);font-size:.8rem;text-transform:uppercase;margin-bottom:.3rem">No banco (entra)</div><div style="display:flex;flex-direction:column;gap:.35rem">${inHtml}</div></div>`}
+  </div>`;
+}
+openSub=function(side,force){
+  const gk=M.gkMode;
+  if(!force&&!gk&&M.status!=='paused'&&M.status!=='break')return toast('Use uma parada técnica ou espere o intervalo para substituir.');
+  if(!gk&&M.subs[side]<=0)return toast('Limite de 5 substituições esgotado.');
+  const l=side==='home'?M.lh:M.la;
+  if(!gk&&(!l.on.length||!l.bench.length))return toast('Não há reservas disponíveis.');
+  M.side=side;M.forced=force||(gk?{gk:1}:null);
+  const outs=force?[force]:(gk?[...l.on].filter(p=>p.pos!=='GK'):[...l.on]).sort(byPos);
+  const ins=gk==='pick'?[]:(gk?l.bench.filter(p=>p.pos==='GK'):[...l.bench]).sort(byPos);
+  $('sub-out').innerHTML=outs.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.pos} - ${p.ovr})</option>`).join('');
+  $('sub-in').innerHTML=ins.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.pos} - ${p.ovr})</option>`).join('');
+  sdBuild(outs,ins,gk==='pick'?'pick':'sub');
+  $('sub-title').textContent=gk?'🧤 Goleiro expulso — escolha a substituição':force?'🚑 Lesão — substituição obrigatória':'Realizar substituição';
+  $('sub-close').style.display=(force||gk)?'none':'';
+  $('m-sub').classList.add('on');
+};
+const _cl12=closeSub;
+closeSub=function(){_cl12();if(M)M.gkMode=null};
+
+/* =====================================================================
+   7) SELEÇÃO DE EQUIPES: liga → clube, tudo em ordem alfabética,
+      com logo e média de overall (soma dos overalls ÷ nº de atletas)
+   ===================================================================== */
+function tOptsFor(lg){
+  const list=teams.filter(t=>lgOf(t.id)===lg).sort(byName);
+  return list.map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.code)})</option>`).join('')||'<option value="">Nenhum time nesta liga</option>';
+}
+window.renderOvr=function(){
+  ['home','away'].forEach(s=>{
+    const el=$('ovr-'+s),t=teamOf($('sel-'+s).value);if(!el)return;
+    if(!t){el.innerHTML='';return}
+    const ps=players.filter(p=>p.teamId===t.id),avg=ps.length?ps.reduce((a,p)=>a+p.ovr,0)/ps.length:0;
+    el.innerHTML=`<img src="${esc(t.logo)}" onerror="this.src='${PH}'" alt=""><div style="min-width:0;flex:1"><b style="font:700 1rem var(--fs);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</b><small style="color:var(--muted);font-size:.7rem">${ps.length} atleta(s)</small></div><div class="ov">${avg?avg.toFixed(1):'--'}<small>OVR médio</small></div>`;
+  });
+};
+window.fillSelects=function(){
+  teams.sort(byName);
+  const ids=[...new Set(teams.map(t=>lgOf(t.id)))];
+  const lgs=ids.map(id=>({id,name:id==='__none'?'Sem liga':leagues.find(l=>l.id===id).name})).sort((a,b)=>a.name.localeCompare(b.name,'pt'));
+  ['home','away'].forEach(s=>{
+    if($('lg-'+s))return;
+    const sel=$('sel-'+s),col=document.createElement('div');col.className='sidecol';
+    sel.parentNode.insertBefore(col,sel);
+    const lgEl=document.createElement('select');lgEl.id='lg-'+s;lgEl.className='fc';lgEl.onchange=()=>lgPick(s);
+    col.appendChild(lgEl);col.appendChild(sel);
+    const oc=document.createElement('div');oc.id='ovr-'+s;oc.className='ovrcard';col.appendChild(oc);
+  });
+  const cur={home:$('sel-home').value,away:$('sel-away').value};
+  ['home','away'].forEach(s=>{
+    const lgEl=$('lg-'+s),tEl=$('sel-'+s),ct=teamOf(cur[s]);
+    lgEl.innerHTML=lgs.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('')||'<option value="">Nenhuma liga</option>';
+    let L=ct?lgOf(ct.id):(lgs[0]?lgs[0].id:'');
+    if(!lgs.some(o=>o.id===L))L=lgs[0]?lgs[0].id:'';
+    lgEl.value=L;
+    tEl.innerHTML=tOptsFor(L);
+    if(ct&&lgOf(ct.id)===L)tEl.value=ct.id;
+  });
+  if($('sel-away').value===$('sel-home').value){const alt=[...$('sel-away').options].find(o=>o.value&&o.value!==$('sel-home').value);if(alt)$('sel-away').value=alt.value}
+  const pv=$('p-team').value,fv=$('f-club').value;
+  $('p-team').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(t.name)} (${esc(t.code)})</option>`).join('')||'<option value="">Nenhum time cadastrado</option>';
+  $('p-team').value=teamOf(pv)?pv:(teams[0]?teams[0].id:'');
+  $('f-club').innerHTML='<option value="">Todos os clubes</option>'+teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  $('f-club').value=teamOf(fv)?fv:'';
+  renderOvr();
+};
+window.lgPick=function(s){
+  $('sel-'+s).innerHTML=tOptsFor($('lg-'+s).value);
+  if($('sel-home').value===$('sel-away').value){const alt=[...$('sel-away').options].find(o=>o.value&&o.value!==$('sel-home').value);if(alt)$('sel-away').value=alt.value}
+  onTeamChange();
+};
+window.syncLg=function(s,tid){
+  if(!teamOf(tid))return;const L=lgOf(tid);
+  $('lg-'+s).value=L;$('sel-'+s).innerHTML=tOptsFor(L);$('sel-'+s).value=tid;
+};
+const _pf12=playFix;
+playFix=function(i){const f=curFix()[i];if(f&&!f.r){syncLg('home',f.h);syncLg('away',f.a)}_pf12(i)};
+const _otc12=onTeamChange;
+onTeamChange=function(){_otc12();renderOvr();renderStadium()};
+const _rT12=renderTeams;
+renderTeams=function(){teams.sort(byName);_rT12()};
+
+/* =====================================================================
+   8) ESTÁDIOS: nome, imagem (marca d'água no campo), torcedores (mando de campo)
+   ===================================================================== */
+(function(){
+  const anchor=$('t-board').closest('.fg');
+  anchor.insertAdjacentHTML('beforebegin',`<div class="fg"><label>Estádio</label><input id="t-stadium" class="fc" maxlength="40" placeholder="Ex: Estádio Municipal"></div>
+  <div class="fg"><label>Torcedores (capacidade)</label><input type="number" id="t-fans" class="fc" min="0" max="200000" placeholder="45000"></div>
+  <div class="fg"><label>Imagem do estádio (aparece levemente no campo)</label><input id="t-stadimg" class="fc" placeholder="https://..."><label class="upl">📁 Enviar imagem do estádio<input type="file" accept="image/*" hidden onchange="stUpload(event)"></label></div>`);
+  const st=document.querySelector('.stage');
+  if(!$('stadbg'))st.insertAdjacentHTML('afterbegin','<div id="stadbg"></div>');
+  if(!$('stadinfo'))$('side-home').closest('.score-bar').insertAdjacentHTML('afterend','<div id="stadinfo"></div>');
+})();
+window.stUpload=function(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=e=>shrinkImg(e.target.result,900,d=>{$('t-stadimg').value=d});r.readAsDataURL(f);ev.target.value=''};
+window.renderStadium=function(){
+  const t=teamOf($('sel-home').value);
+  const bg=$('stadbg');if(bg)bg.style.backgroundImage=t&&t.stadiumImg?`url("${t.stadiumImg}")`:'none';
+  const si=$('stadinfo');if(si)si.textContent=t?`🏟️ ${t.stadium||'Estádio não informado'}${t.fans?' • '+(+t.fans).toLocaleString('pt-BR')+' torcedores':''}`:'';
+};
+const _st12=saveTeam;
+saveTeam=function(e){
+  const nm=$('t-name').value.trim(),st=$('t-stadium').value.trim(),img=$('t-stadimg').value.trim(),fans=Math.max(0,+$('t-fans').value||0);
+  _st12(e);
+  const t=teams.find(x=>x.name===nm);
+  if(t&&!$('t-name').value){t.stadium=st;t.stadiumImg=img;t.fans=fans;store('stars_teams',teams);renderTeams();renderOvr();renderStadium()}
+};
+const _et12=editTeam;
+editTeam=function(id){_et12(id);const t=teamOf(id);if(t){$('t-stadium').value=t.stadium||'';$('t-stadimg').value=t.stadiumImg||'';$('t-fans').value=t.fans||''}};
+const _rtm12=resetTeam;
+resetTeam=function(){_rtm12();$('t-stadium').value='';$('t-stadimg').value='';$('t-fans').value=''};
+
+/* =====================================================================
+   9) ATLETAS: sem estrelas de drible (campo removido do formulário)
+   ===================================================================== */
+$('p-skill').closest('.fg').style.display='none';
+$('p-skill').required=false;
+
+/* =====================================================================
+   10) LIGAS PERSONALIZADAS: só o criador vê; criadas e guardadas no perfil
+   ===================================================================== */
+$('l-logo').closest('.fg').insertAdjacentHTML('afterend',`<div class="fg"><label style="text-transform:none;font-size:.9rem;color:#fff;font-weight:600"><input type="checkbox" id="l-priv" onchange="pvToggleBox(this.checked)"> Liga personalizada (só eu vejo, não é oficial)</label>
+<div id="l-privbox" style="display:none"><label>Times da liga</label><div id="l-privteams" class="chips" style="margin-top:.4rem"></div></div></div>`);
+const PVSEL=new Set();
+window.pvToggleBox=function(v){$('l-privbox').style.display=v?'':'none';pvChips()};
+function pvChips(){
+  $('l-privteams').innerHTML=teams.map(t=>`<button type="button" class="chip ${PVSEL.has(t.id)?'on':''}" onclick="pvTog('${t.id}')">${esc(t.name)}</button>`).join('')||'<span style="color:var(--muted)">Cadastre clubes primeiro.</span>';
+}
+window.pvTog=function(id){PVSEL.has(id)?PVSEL.delete(id):PVSEL.add(id);pvChips()};
+saveLeague=function(e){
+  e.preventDefault();
+  const name=$('l-name').value.trim();
+  const l={id:uid(),name,logo:$('l-logo').value.trim(),format:$('l-format').value,size:Math.min(32,Math.max(2,+$('l-size').value||8)),turns:+$('l-turns').value,koN:+$('l-ko').value,tb:$('l-tb').value,author:currentUser};
+  if($('l-priv').checked){
+    l.custom=true;l.priv=true;l.teamIds=[...PVSEL].filter(id=>teamOf(id));
+    if(l.teamIds.length<2)return toast('Escolha pelo menos 2 times para a liga personalizada.');
+    l.size=l.teamIds.length;
+  }
+  if(!name)return toast('Dê um nome à liga.');
+  if(leagues.some(x=>x.name.toLowerCase()===name.toLowerCase()))return toast('Já existe uma liga com esse nome.');
+  leagues.push(l);store('stars_leagues',leagues);log(`Criou a liga${l.priv?' personalizada (privada)':''}: ${name}`);
+  $('l-name').value='';$('l-logo').value='';$('l-priv').checked=false;$('l-privbox').style.display='none';PVSEL.clear();pvChips();refreshAll();
+};
+renderLeagues=function(){
+  const vis=leagues.filter(canSee);
+  $('leagues-grid').innerHTML=vis.length?vis.map(l=>`<div class="panel" style="display:flex;flex-direction:column;gap:.6rem">
+  <div class="row" style="gap:.7rem;flex-wrap:nowrap">${lgImg(l)}<div><div style="font:700 1.3rem var(--fs)">${esc(l.name)}${l.custom?' <small style="color:var(--muted)">(personalizada'+(l.priv?', só você vê':'')+')</small>':''}</div>
+  <div style="color:var(--muted);font-size:.85rem">${FMT[l.format]} • ${lTeams(l).length}/${l.size} times<br>${l.format==='knockout'?'Jogo único':l.turns===2?'Ida e volta':'Só ida'}${l.format==='both'?' • '+l.koN+' no mata-mata':''}${l.format!=='points'?' • desempate: '+(l.tb==='et_pen'?'prorrogação + pênaltis':'pênaltis'):''}</div></div></div>
+  <div class="row" style="gap:.4rem"><button class="btn sm" onclick="openSeason('${l.id}')">▶ Jogar</button><button class="btn sec sm" onclick="openLeagueEdit('${l.id}')">✏️ Editar</button><button class="btn dng sm" onclick="deleteLeague('${l.id}')">🗑️</button></div></div>`).join(''):'<p style="color:var(--muted)">Nenhuma liga disponível. Crie uma ao lado ou use "Jogar liga" para montar uma personalizada.</p>';
+};
+const _rsm12=renderSeasonModal;
+renderSeasonModal=function(){
+  _rsm12();
+  const sel=document.querySelector('#ss-body select');
+  if(sel)[...sel.options].forEach(o=>{const l=leagues.find(x=>x.id===o.value);if(l&&!canSee(l))o.remove()});
+};
+
+/* Caixa da rodada: só jogos ainda não disputados */
+renderRoundBox=function(){
+  const b=$('round-box');
+  if(!S||S.champ){b.style.display='none';return}
+  const all=curFix();
+  if(!all.some(f=>!f.r&&f.h&&f.a)){b.style.display='none';return}
+  const up=all.map((f,i)=>f.r||!f.h||!f.a?'':fixRow(f,i,false)).join('');
+  b.style.display='block';
+  b.innerHTML=`<h3 class="t">${esc(S.name)}</h3><p style="color:var(--muted);margin-bottom:.6rem">${roundTitle()} — próximos jogos</p><div class="ticker-list" style="max-height:260px">${up}</div>`+(M&&M.ctx?'<button class="btn dng sm" style="margin-top:.7rem" onclick="giveUp()">Desistir desta partida</button>':'');
+  addLeagueLogos();
+};
+
+/* =====================================================================
+   11) INICIALIZAÇÃO DO PATCH
+   ===================================================================== */
+fillSelects();renderTeams();renderOvr();renderStadium();renderStats();renderLeagues();renderRoundBox();pvChips();
+renderMBoard();
+
+} /* fim do if(P12_OK) */
 </script>
 </body>
 </html>
