@@ -2848,67 +2848,81 @@ renderMBoard();
 
 } /* fim do if(P12_OK) */
 </script>
-<!-- ===== PATCH • filtro de clubes por liga (aba Times) • cole DEPOIS do v12 revisado, antes de </body> ===== -->
+<!-- ===== PATCH v13 • substitui o patch do filtro de clubes • cole DEPOIS do v12 revisado, antes de </body> ===== -->
 <script>
-if(typeof lgOf==='function'&&typeof byName==='function'&&$('teams-grid')){
+(function(){
+  /* Verificação: precisa da base do jogo (não depende mais de nada declarado dentro do v12) */
+  if(typeof renderTeams!=='function'||typeof teams==='undefined'||!document.getElementById('teams-grid')){
+    console.error('PATCH v13: base do jogo não encontrada. Cole este bloco no FIM do arquivo, antes de </body>.');
+    return;
+  }
 
-  /* Caixa de filtro acima da lista de clubes */
-  $('teams-grid').insertAdjacentHTML('beforebegin',`<div class="row" style="gap:.6rem;align-items:center;margin-bottom:.8rem">
-    <select id="tf-league" class="fc" style="flex:1;min-width:200px" onchange="tfSet(this.value)"></select>
-    <span id="tf-count" style="color:var(--muted);font-size:.85rem;white-space:nowrap"></span></div>`);
-  window.TF_LG='__all';
+  /* Funções próprias deste patch (nomes únicos, sem conflito com os outros) */
+  const byN=(a,b)=>String(a.name).localeCompare(String(b.name),'pt');
+  const lgId=tid=>{const t=teams.find(x=>x.id===tid);return t&&t.leagueId&&leagues.some(l=>l.id===t.leagueId)?t.leagueId:'__none'};
 
-  /* Opções do filtro: todas as ligas com clubes (em ordem alfabética) + "Sem liga" */
+  /* Caixa de filtro acima da lista de clubes (criada uma única vez) */
+  if(!document.getElementById('tf-league')){
+    $('teams-grid').insertAdjacentHTML('beforebegin',
+      '<div class="row" style="gap:.6rem;align-items:center;margin-bottom:.8rem">'+
+      '<select id="tf-league" class="fc" style="flex:1;min-width:200px" onchange="tfSet(this.value)"></select>'+
+      '<span id="tf-count" style="color:var(--muted);font-size:.85rem;white-space:nowrap"></span></div>');
+  }
+  window.TF_LG=window.TF_LG||'__all';
+
+  /* Opções: "Todas as ligas", cada liga que tem clubes (A–Z) e "Sem liga" */
   window.tfOpts=function(){
     const sel=$('tf-league');if(!sel)return;
-    const ids=[...new Set(teams.map(t=>lgOf(t.id)))];
+    const ids=[...new Set(teams.map(t=>lgId(t.id)))];
     const list=ids.map(id=>({id,name:id==='__none'?'Sem liga':leagues.find(l=>l.id===id).name}))
       .sort((a,b)=>a.name.localeCompare(b.name,'pt'));
     const keep=window.TF_LG;
-    sel.innerHTML=`<option value="__all">Todas as ligas (${teams.length} clubes)</option>`+
-      list.map(o=>`<option value="${o.id}">${esc(o.name)} (${teams.filter(t=>lgOf(t.id)===o.id).length})</option>`).join('');
+    sel.innerHTML='<option value="__all">Todas as ligas ('+teams.length+' clubes)</option>'+
+      list.map(o=>'<option value="'+o.id+'">'+esc(o.name)+' ('+teams.filter(t=>lgId(t.id)===o.id).length+')</option>').join('');
     sel.value=(keep==='__all'||list.some(o=>o.id===keep))?keep:'__all';
     window.TF_LG=sel.value;
   };
   window.tfSet=function(v){window.TF_LG=v;renderTeams()};
 
-  /* Lista de clubes: respeita o filtro e continua em ordem alfabética */
+  /* Lista de clubes: respeita o filtro e fica em ordem alfabética */
   window.renderTeams=function(){
-    teams.sort(byName);
+    teams.sort(byN);
     tfOpts();
     const L=window.TF_LG;
-    const list=teams.filter(t=>L==='__all'||lgOf(t.id)===L);
-    if($('tf-count'))$('tf-count').textContent=`${list.length} de ${teams.length} clube(s)`;
+    const list=teams.filter(t=>L==='__all'||lgId(t.id)===L);
+    if($('tf-count'))$('tf-count').textContent=list.length+' de '+teams.length+' clube(s)';
     $('teams-grid').innerHTML=list.length?list.map(t=>{
       const lg=leagues.find(l=>l.id===t.leagueId);
-      return `<div class="panel" style="text-align:center;border-top:5px solid ${esc(c1(t))}">
-  ${t.priv?'<div style="text-align:right;font-size:.8rem;color:var(--muted)">🔒 Privado</div>':''}
-  <img src="${esc(t.logo)}" onerror="this.src='${PH}'" alt="" style="width:60px;height:60px;object-fit:contain;margin-bottom:.5rem">
-  <div style="font:700 1.2rem var(--fs)">${esc(t.name)} (${esc(t.code)})</div>
-  <div style="color:var(--muted);font-size:.85rem">${players.filter(p=>p.teamId===t.id).length} atleta(s) • ${esc(t.formation)}</div>
-  <div style="color:var(--muted);font-size:.78rem;margin-bottom:.8rem">${(ATK[t.atk]||ATK.eq).n} • ${(DEF[t.def]||DEF.eq).n}${lg?' • '+esc(lg.name):''}</div>
-  <div class="row" style="justify-content:center;gap:.4rem"><button class="btn sec sm" onclick="editTeam('${t.id}')">✏️ Editar</button><button class="btn dng sm" onclick="deleteTeam('${t.id}')">🗑️ Excluir</button></div></div>`;
+      return '<div class="panel" style="text-align:center;border-top:5px solid '+esc(c1(t))+'">'+
+        (t.priv?'<div style="text-align:right;font-size:.8rem;color:var(--muted)">🔒 Privado</div>':'')+
+        '<img src="'+esc(t.logo)+'" onerror="this.src=\''+PH+'\'" alt="" style="width:60px;height:60px;object-fit:contain;margin-bottom:.5rem">'+
+        '<div style="font:700 1.2rem var(--fs)">'+esc(t.name)+' ('+esc(t.code)+')</div>'+
+        '<div style="color:var(--muted);font-size:.85rem">'+players.filter(p=>p.teamId===t.id).length+' atleta(s) • '+esc(t.formation)+'</div>'+
+        '<div style="color:var(--muted);font-size:.78rem;margin-bottom:.8rem">'+(ATK[t.atk]||ATK.eq).n+' • '+(DEF[t.def]||DEF.eq).n+(lg?' • '+esc(lg.name):'')+'</div>'+
+        '<div class="row" style="justify-content:center;gap:.4rem"><button class="btn sec sm" onclick="editTeam(\''+t.id+'\')">✏️ Editar</button><button class="btn dng sm" onclick="deleteTeam(\''+t.id+'\')">🗑️ Excluir</button></div></div>';
     }).join(''):'<p style="color:var(--muted)">Nenhum clube nesta liga.</p>';
   };
-
-  renderTeams();
 
   /* Sem limite de atletas por clube */
   window.savePlayer=function(e){
     e.preventDefault();
     const teamId=$('p-team').value;if(!teamId)return toast('Cadastre um clube antes de criar atletas.');
     const ovr=Math.min(99,Math.max(40,parseInt($('p-ovr').value)||40));
-    const p={id:editPlayerId||uid(),name:$('p-name').value.trim(),teamId,ovr,pos:$('p-pos').value,foot:$('p-foot').value,skills:Math.min(5,Math.max(1,parseInt($('p-skill').value)||1)),photo:$('p-photo').value.trim()||PH,author:currentUser};
+    const p={id:editPlayerId||uid(),name:$('p-name').value.trim(),teamId,ovr,pos:$('p-pos').value,foot:$('p-foot').value,skills:Math.min(5,Math.max(1,parseInt($('p-skill').value)||3)),photo:$('p-photo').value.trim()||PH,author:currentUser};
     const old=players.find(x=>x.id===p.id);
     const i=players.findIndex(x=>x.id===p.id);
-    if(i>=0){players[i]=p;log(`Editou o atleta: ${p.name}`)}else{players.push(p);log(`Cadastrou o atleta: ${p.name} (${teamOf(teamId).name})`)}
+    if(i>=0){players[i]=p;log('Editou o atleta: '+p.name)}else{players.push(p);log('Cadastrou o atleta: '+p.name+' ('+teamOf(teamId).name+')')}
     if(old&&old.teamId!==teamId){const ot=teamOf(old.teamId);if(ot){Object.keys(ot.tactics||{}).forEach(k=>{if(ot.tactics[k]===p.id)delete ot.tactics[k]});store('stars_teams',teams)}}
     if(!store('stars_players',players))return;
     resetPlayer();refreshAll();
   };
-  const plLbl=$('p-team').closest('.fg').querySelector('label');
-  if(plLbl)plLbl.textContent='Clube';
-}
+  const lbl=$('p-team')&&$('p-team').closest('.fg')&&$('p-team').closest('.fg').querySelector('label');
+  if(lbl)lbl.textContent='Clube';
+
+  /* Aplica agora */
+  renderTeams();
+  console.log('PATCH v13 aplicado: filtro de clubes por liga + sem limite de atletas.');
+})();
 </script>
 </body>
 </html>
