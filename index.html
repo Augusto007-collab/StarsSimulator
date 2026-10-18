@@ -3426,5 +3426,57 @@ body.noadm .fut.click{cursor:default}
   if(hint)hint.textContent='Escolha de 1 a 30 atletas. Eles ganham +3 de overall e o card TOTW por 7 dias.';
 })();
 </script>
+<!-- ===== PATCH v16 • correção de botões • cole DEPOIS do v15, antes de </body> ===== -->
+<script>
+(function(){
+  /* Liga um botão por JavaScript (sem depender do onclick embutido no HTML)
+     e impede que um clique falhe em silêncio. */
+  const bind=(el,fn)=>{
+    if(!el)return;
+    el.removeAttribute('onclick');
+    el.onclick=null;
+    el.addEventListener('click',e=>{e.preventDefault();try{fn()}catch(err){console.error('Botão:',err);toast('Erro ao executar a ação. Veja o console (F12).')}});
+  };
+  const onlyAdminMsg=()=>toast('Apenas o MingauCoach pode alterar a Seleção da Semana.');
+
+  /* ---- Seleção da Semana: Salvar e Cancelar ---- */
+  (function(){
+    const m=document.getElementById('m-totw');if(!m)return;
+    const btns=m.querySelectorAll('.row button');
+    const salvar=btns[0],cancelar=btns[1];
+    bind(salvar,()=>{
+      if(typeof isAdmin==='function'&&!isAdmin())return onlyAdminMsg();
+      const n=parseInt(($('tp-n')&&$('tp-n').textContent)||'0',10)||0;
+      if(n<1)return toast('Escolha de 1 a 30 atletas para a Seleção da Semana.');
+      if(n>30)return toast('O máximo é 30 atletas.');
+      if(typeof window.twPickSave!=='function')return toast('Seleção da Semana indisponível neste carregamento. Recarregue a página.');
+      window.twPickSave();
+    });
+    bind(cancelar,()=>m.classList.remove('on'));
+    /* fechar clicando fora do cartão */
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')});
+  })();
+
+  /* ---- Botões de "Fechar"/"Cancelar" dos outros modais: sempre fecham ---- */
+  [['m-cloud',null],['m-ads',null],['m-lg',null],['m-season',null],['m-conf',null]].forEach(([id])=>{
+    const m=document.getElementById(id);if(!m)return;
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')});
+  });
+
+  /* ---- Botões de ação que dependem de permissão: avisam em vez de sumir ---- */
+  document.addEventListener('click',e=>{
+    const b=e.target.closest&&e.target.closest('#tw-admin button');
+    if(b&&typeof isAdmin==='function'&&!isAdmin()){e.stopImmediatePropagation();onlyAdminMsg()}
+  },true);
+
+  /* ---- Botões que chamam funções inexistentes: registra no console ---- */
+  document.querySelectorAll('[onclick]').forEach(el=>{
+    const m=(el.getAttribute('onclick')||'').match(/^\s*([A-Za-z_$][\w$]*)\s*\(/);
+    if(m&&typeof window[m[1]]!=='function'&&m[1]!=='$')console.warn('Botão sem função:',m[1],el.textContent.trim());
+  });
+
+  console.log('PATCH v16 aplicado.');
+})();
+</script>
 </body>
 </html>
