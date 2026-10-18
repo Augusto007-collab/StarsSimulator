@@ -3568,5 +3568,153 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v17 aplicado.');
 })();
 </script>
+<!-- ===== PATCH v18 • cole DEPOIS do v17, antes de </body> ===== -->
+<script>
+(function(){
+  const WEEK=7*864e5;
+  if(typeof futCard!=='function'||typeof lineup!=='function'||typeof tStr!=='function'||typeof renderTactics!=='function'||typeof byPos!=='function'||!document.getElementById('m-totw')){
+    console.error('PATCH v18: rode depois do v17 (falta a Seleção da Semana).');return;
+  }
+
+  /* =====================================================================
+     1) ESTADO AO VIVO: a seleção é lida do armazenamento a cada uso,
+        então alterações valem na hora, sem recarregar a página.
+     ===================================================================== */
+  const readTW=()=>load('stars_totw',{ids:[],start:0,upd:0});
+  const actTW=t=>!!(t&&t.ids&&t.ids.length>0&&Date.now()-t.start<WEEK);
+  const liveIds=()=>{const t=readTW();return actTW(t)?t.ids:[]};
+  const isT=id=>liveIds().includes(id);
+  window.isTotw=isT;
+  const boost=p=>isT(p.id)?{...p,ovr:Math.min(99,p.ovr+3),totw:1}:p;
+
+  lineup=function(team){
+    const roster=players.filter(p=>p.teamId===team.id).map(boost),used=new Set(),on=[];
+    for(let i=0;i<11;i++){const p=roster.find(x=>x.id===(team.tactics||{})['s'+i]);if(p&&!used.has(p.id)){on.push(p);used.add(p.id)}}
+    const rest=roster.filter(p=>!used.has(p.id)).sort((a,b)=>b.ovr-a.ovr);
+    while(on.length<11&&rest.length)on.push(rest.shift());
+    return{on,bench:rest.sort(byPos)};
+  };
+  tStr=function(id){
+    const r=players.filter(p=>p.teamId===id).map(boost).sort((a,b)=>b.ovr-a.ovr).slice(0,11);
+    return r.length?r.reduce((s,p)=>s+p.ovr,0)/r.length:70;
+  };
+  window.renderOvr=function(){
+    ['home','away'].forEach(s=>{
+      const el=$('ovr-'+s),t=teamOf($('sel-'+s).value);if(!el)return;
+      if(!t){el.innerHTML='';return}
+      const ps=players.filter(p=>p.teamId===t.id).map(boost),avg=ps.length?ps.reduce((a,p)=>a+p.ovr,0)/ps.length:0;
+      el.innerHTML=`<img src="${esc(t.logo)}" onerror="this.src='${PH}'" alt=""><div style="min-width:0;flex:1"><b style="font:700 1rem var(--fs);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</b><small style="color:var(--muted);font-size:.7rem">${ps.length} atleta(s)</small></div><div class="ov">${avg?avg.toFixed(1):'--'}<small>OVR médio</small></div>`;
+    });
+  };
+
+  /* =====================================================================
+     2) CARTA DO ATLETA (todas as abas): dourada se estiver na seleção
+     ===================================================================== */
+  futCard=function(p,o){
+    o=o||{};
+    const t=teamOf(p.teamId);
+    if(!isT(p.id)){
+      return `<div class="fut ${o.click?'click':''}" ${o.click?`onclick="${o.click}"`:''}>
+  <div class="ovr">${p.ovr}</div><div class="pos">${esc(p.pos)}</div>
+  <img class="club" src="${esc(t?t.logo:PH)}" alt="" onerror="this.src='${PH}'">
+  <img class="ph" src="${esc(p.photo||PH)}" alt="" onerror="this.src='${PH}'">
+  <div class="nm">${esc(p.name)}</div><div class="cn">${esc(t?t.name:'Sem clube')}</div>${o.actions||''}</div>`;
+    }
+    const rows=Array.from({length:18},()=>'<div class="twrow">'+'<span>TOTW</span>'.repeat(16)+'</div>').join('');
+    return `<div class="fw"><div class="fut totw ${o.click?'click':''}" ${o.click?`onclick="${o.click}"`:''}><div class="twclip"><div class="twbg">${rows}</div></div>
+        <div class="ovr">${Math.min(99,p.ovr+3)}</div><div class="pos">${esc(p.pos)}</div>
+        <img class="club" src="${esc(t?t.logo:PH)}" alt="" onerror="this.src='${PH}'">
+        <img class="ph" src="${esc(p.photo||PH)}" alt="" onerror="this.src='${PH}'">
+        <div class="nm">${esc(p.name)}</div><div class="cn">${esc(t?t.name:'Sem clube')}</div>${o.actions||''}</div>
+        <div class="totwlbl">Jogador da Semana</div></div>`;
+  };
+
+  /* =====================================================================
+     3) GRAVAÇÃO: atualiza na tela na hora e envia para a nuvem
+     ===================================================================== */
+  function refreshTW(){
+    renderPlayers();window.renderOvr();window.twRender();
+    if(typeof renderTactics==='function')renderTactics();
+    if(typeof stats==='function')stats();
+  }
+  function saveTW(ids){
+    const cur=readTW();
+    const start=ids.length===0?0:(actTW(cur)?cur.start:Date.now());
+    const data={ids,start,upd:Date.now()};
+    try{localStorage.setItem('stars_totw',JSON.stringify(data));localStorage.setItem('stars_ts',Date.now())}catch(e){}
+    if(typeof cloudOn==='function'&&cloudOn()){
+      fetch(cloudUrl().replace(/\.json$/,'/totw_v1.json'),{method:'PUT',body:JSON.stringify(data)}).catch(()=>{});
+    }
+    refreshTW();
+  }
+
+  /* =====================================================================
+     4) ABA SELEÇÃO DA SEMANA: lista ao vivo, com "Remover" em cada atleta
+     ===================================================================== */
+  window.twRender=function(){
+    const t=readTW(),act=actTW(t);
+    const L=act?t.ids.map(id=>players.find(p=>p.id===id)).filter(Boolean).sort(byPos):[];
+    const d=Math.max(1,Math.ceil((t.start+WEEK-Date.now())/864e5));
+    const info=$('tw-info'),grid=$('tw-grid');
+    if(info)info.textContent=L.length?`${L.length} atleta(s) • +3 de overall • vale até ${new Date(t.start+WEEK).toLocaleDateString('pt-BR')} (${d} dia(s))`:'Nenhuma seleção ativa. Os efeitos duram 1 semana, a partir da escolha do MingauCoach.';
+    if(!grid)return;
+    const admin=typeof isAdmin==='function'&&isAdmin();
+    grid.innerHTML=L.length?L.map(p=>futCard(p,{actions:admin?`<button class="btn dng sm" style="margin-top:.4rem" onclick="twRemoveOne('${p.id}')">✖ Remover da semana</button>`:''})).join(''):'<p style="color:var(--muted);grid-column:1/-1">Ainda não há Seleção da Semana.</p>';
+  };
+  window.twRemoveOne=function(id){
+    if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode alterar a Seleção da Semana.');
+    const p=players.find(x=>x.id===id);
+    const ids=readTW().ids.filter(x=>x!==id);
+    saveTW(ids);
+    if(p){log(`Removeu ${p.name} da Seleção da Semana`);toast(`${p.name} saiu da Seleção da Semana.`)}
+  };
+  if(typeof window.twRender==='function')window.twRender();
+
+  /* =====================================================================
+     5) SELETOR (modal): escolher ou desmarcar atletas e salvar (0 a 30)
+     ===================================================================== */
+  let SELV=new Set();
+  const _open=window.openTotwPick;
+  window.openTotwPick=function(){
+    if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode definir a Seleção da Semana.');
+    SELV=new Set(liveIds());
+    _open();
+    const n=$('tp-n');if(n)n.textContent=SELV.size+'/30';
+  };
+  const _tog=window.twTog;
+  window.twTog=function(id){
+    const had=SELV.has(id);
+    if(!had&&SELV.size>=30)return toast('Máximo de 30 atletas na Seleção da Semana.');
+    _tog(id);
+    if(had)SELV.delete(id);else SELV.add(id);
+    const n=$('tp-n');if(n)n.textContent=SELV.size+'/30';
+  };
+  const m=document.getElementById('m-totw');
+  const row=m.querySelectorAll('.row')[m.querySelectorAll('.row').length-1];
+  const bs=row.querySelectorAll('button');
+  const fresh=b=>{const n=b.cloneNode(true);b.replaceWith(n);return n};
+  const salvar=fresh(bs[0]),cancelar=fresh(bs[1]);
+  salvar.removeAttribute('onclick');cancelar.removeAttribute('onclick');
+  salvar.addEventListener('click',e=>{
+    e.preventDefault();
+    if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode definir a Seleção da Semana.');
+    const ids=[...SELV];
+    saveTW(ids);
+    log(`Definiu a Seleção da Semana (${ids.length} atleta(s))`);
+    m.classList.remove('on');
+    toast(ids.length?`Seleção salva: ${ids.length} atleta(s).`:'Seleção da Semana limpa.');
+  });
+  cancelar.addEventListener('click',e=>{e.preventDefault();m.classList.remove('on')});
+
+  /* =====================================================================
+     6) Ao abrir a aba, mostra o estado atual
+     ===================================================================== */
+  const tabBtn=document.querySelector('.nav-btn[data-tab="totw"]');
+  if(tabBtn)tabBtn.addEventListener('click',()=>setTimeout(()=>window.twRender(),0));
+
+  refreshTW();
+  console.log('PATCH v18 aplicado.');
+})();
+</script>
 </body>
 </html>
