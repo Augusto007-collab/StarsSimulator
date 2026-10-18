@@ -4053,21 +4053,15 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v20 aplicado.');
 })();
 </script>
-<!-- ===== PATCH v21 • cole DEPOIS do v20, antes de </body> ===== -->
+<!-- ===== PATCH v21 (corrigido) • placas no padrão enviado + simulação • cole DEPOIS do v20, antes de </body> ===== -->
 <style>
-/* ===== Campo estilo 365Scores: arquibancada, gramado listrado, iluminação e redes ===== */
-.stage{background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.10),transparent 55%),linear-gradient(180deg,#0b0f15 0%,#161c26 45%,#0b0f15 100%)!important}
-.stage::before{height:46%!important;background:
-  repeating-linear-gradient(90deg,transparent 0 9px,rgba(0,0,0,.35) 9px 10px),
-  repeating-linear-gradient(0deg,#2a303b 0 14px,#1c222c 14px 28px),
-  linear-gradient(180deg,#252b36,#11151c)!important;opacity:1!important}
-.pitch{background:repeating-linear-gradient(90deg,#3c8a35 0 8.33%,#4a9a41 8.33% 16.66%)!important;
-  box-shadow:0 0 0 22px #2c6b2b,0 0 0 26px #163d1a,0 0 60px rgba(255,255,255,.08),0 40px 46px 24px rgba(0,0,0,.85)!important}
-.pitch::before{background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,.22),transparent 60%),linear-gradient(180deg,transparent 70%,rgba(0,0,0,.18))!important}
-.lines,.lines div{border-color:rgba(255,255,255,.95)!important;box-shadow:0 0 2px rgba(255,255,255,.35)}
-.gl,.gr{background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.05))!important;box-shadow:0 0 10px rgba(255,255,255,.35)}
-.goal3d i.p3{background-color:rgba(255,255,255,.10)!important}
-.flag{box-shadow:0 0 6px rgba(255,255,255,.4)}
+/* ===== Placas de publicidade: faixas finas com as imagens repetidas, contornando o campo ===== */
+.adb{background:#0b0f16!important;border:0!important;box-shadow:0 1px 4px rgba(0,0,0,.6)!important;overflow:hidden!important;z-index:1!important}
+.adb.t{left:-2%!important;right:-2%!important;top:-27px!important;height:26px!important;transform-origin:bottom!important;transform:rotateX(-90deg)!important}
+.adb.l,.adb.r{top:-2%!important;bottom:-2%!important;width:26px!important;transform:none!important}
+.adb.l{left:-28px!important;right:auto!important}
+.adb.r{right:-28px!important;left:auto!important}
+.adb .adi{background-color:#0b0f16!important}
 </style>
 
 <script>
@@ -4077,14 +4071,30 @@ body.noadm .fut.click{cursor:default}
   }
 
   /* =====================================================================
-     1) SIMULAÇÃO: mais equilíbrio, menos goleadas (mas ainda possíveis)
+     1) PLACAS: altura de 26px, imagens repetidas, lado esquerdo de pé
+     ===================================================================== */
+  window.fitSide=function(){
+    document.querySelectorAll('.adb.l,.adb.r').forEach(b=>{
+      const H=b.offsetHeight||400,ang=b.classList.contains('l')?-90:90;
+      b.querySelectorAll('.adi').forEach(e=>{
+        e.style.width=H+'px';e.style.height='26px';
+        e.style.left='50%';e.style.top='50%';e.style.right='auto';e.style.bottom='auto';
+        e.style.transform='translate(-50%,-50%) rotate('+ang+'deg)';
+      });
+    });
+  };
+  if(typeof renderAds==='function')renderAds();
+  window.addEventListener('resize',()=>window.fitSide());
+
+  /* =====================================================================
+     2) SIMULAÇÃO: mais equilíbrio, goleadas raras mas possíveis
      ===================================================================== */
   const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
 
-  /* Partidas simuladas da liga: força pesa menos, forma do dia varia, goleada rara */
+  /* Partidas simuladas (liga): força pesa menos, forma do dia varia, teto de 7 gols */
   const _sf21=simFix;
   simFix=function(f){
-    _sf21(f);                                   // mantém contagem de suspensões e pênaltis
+    _sf21(f);                                  // mantém suspensões e contagem da liga
     const diff=(tStr(f.h)-tStr(f.a))/38;
     const fh=Math.exp(gauss()*.2),fa=Math.exp(gauss()*.2);
     const lh=Math.min(3.1,Math.max(.45,1.32*Math.exp(diff)*fh));
@@ -4097,10 +4107,10 @@ body.noadm .fut.click{cursor:default}
     else delete f.r.pen;
   };
 
-  /* Partida ao vivo: menos finalizações, por isso menos gols (o jogo fica mais disputado) */
+  /* Partida ao vivo: parte dos lances não vira finalização (menos gols) */
   const _ch21=chance;
   chance=function(c){
-    if(Math.random()<.12)return;               // lance que não vira finalização
+    if(Math.random()<.12)return;
     return _ch21(c);
   };
 
@@ -4111,7 +4121,7 @@ body.noadm .fut.click{cursor:default}
     return _f21(c);
   };
 
-  /* Cartões: nem toda falta vira amarelo (valem as regras de exceção já existentes) */
+  /* Nem toda falta vira amarelo */
   const _gc21=giveCardTo;
   giveCardTo=function(p,side,why,forceRed){
     if(!forceRed&&Math.random()<.35){
@@ -4121,22 +4131,12 @@ body.noadm .fut.click{cursor:default}
     return _gc21(p,side,why,forceRed);
   };
 
-  /* =====================================================================
-     2) CAMPO: arquibancada com torcida e placas em contorno (aparência geral)
-     ===================================================================== */
-  (function(){
-    if(!document.getElementById('crowd21')){
-      const st=document.querySelector('.stage');
-      if(st)st.insertAdjacentHTML('afterbegin','<div id="crowd21" style="position:absolute;inset:0 0 auto 0;height:46%;pointer-events:none;z-index:0;opacity:.85;background:radial-gradient(circle at 10% 60%,#ff5a5f 0 1px,transparent 2px) 0 0/14px 10px,radial-gradient(circle at 60% 40%,#ffd65c 0 1px,transparent 2px) 0 0/17px 13px,radial-gradient(circle at 30% 80%,#8fd3ff 0 1px,transparent 2px) 0 0/19px 11px"></div>');
-    }
-  })();
-
-  console.log('PATCH v21 aplicado.');
+  console.log('PATCH v21 aplicado: placas e simulação.');
 })();
 </script>
 
 <script>
-/* ===== Suspensões: editar as regras de uma liga já criada ===== */
+/* ===== Suspensões: editar as regras de uma liga já criada (do patch v21 anterior) ===== */
 (function(){
   if(typeof openLeagueEdit!=='function'||typeof saveLeagueEdit!=='function'||!document.getElementById('m-lg'))return;
   const m=document.getElementById('m-lg');
@@ -4157,7 +4157,7 @@ body.noadm .fut.click{cursor:default}
   saveLeagueEdit=function(){
     const id=$('lg-id').value;
     _sle();
-    if(!m.classList.contains('on')){                 // salvou com sucesso
+    if(!m.classList.contains('on')){
       const L=leagues.find(x=>x.id===id);
       if(L){
         L.susY=+($('lg-susy')?$('lg-susy').value:0)||0;
@@ -4167,6 +4167,53 @@ body.noadm .fut.click{cursor:default}
       }
     }
   };
+})();
+</script>
+<!-- ===== PATCH v22 • variedade de placares • cole DEPOIS do v21, antes de </body> ===== -->
+<script>
+(function(){
+  if(typeof simFix!=='function'||typeof chance!=='function'||typeof newMatch!=='function'||typeof pois!=='function'){
+    console.error('PATCH v22: rode depois do v21 (faltam funções da base).');return;
+  }
+
+  /* Normal padrão (Box-Muller) */
+  const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+
+  /* "Clima" de cada jogo: lognormal com média ~1. Jogos fechados (0 ou 1 gol),
+     jogos normais e jogos abertos (muitos gols) acontecem de verdade. */
+  const openness=()=>Math.min(3,Math.exp(gauss()*.7-.245));
+
+  /* ---------- Partidas simuladas (liga/campeonato) ---------- */
+  const _sf22=simFix;
+  simFix=function(f){
+    _sf22(f);                                   // mantém suspensões da liga
+    const ko=S&&S.phase==='ko';
+    const op=openness();
+    const diff=(tStr(f.h)-tStr(f.a))/40;
+    const fh=Math.exp(gauss()*.25),fa=Math.exp(gauss()*.25);
+    const lh=Math.min(4.5,1.25*Math.exp(diff)*fh*op);
+    const la=Math.min(4.5,1.1*Math.exp(-diff)*fa*op);
+    let hg=Math.min(9,pois(lh)),ag=Math.min(9,pois(la));
+    if(ko&&hg===ag){hg+=pois(.3);ag+=pois(.3)}
+    f.r={hg,ag};
+    if(hg===ag&&ko)f.r.pen=shootout(f);
+    else delete f.r.pen;
+  };
+
+  /* ---------- Partidas ao vivo ---------- */
+  /* Cada partida recebe o seu "clima" (M.open). Jogo fechado: poucos lances viram finalização.
+     Jogo aberto: alguns lances viram duas finalizações. */
+  const _nm22=newMatch;
+  newMatch=function(){_nm22();if(M)M.open=openness()};
+  const _ch22=chance;
+  chance=function(c){
+    const op=(M&&M.open)||1;
+    if(Math.random()>op*.88)return;             // jogo fechado: o lance morre antes de virar chute
+    _ch22(c);
+    if(op>1.15&&Math.random()<Math.min(.85,(op-1)*.7))_ch22(c); // jogo aberto: lance vira outra finalização
+  };
+
+  console.log('PATCH v22 aplicado: variedade de placares.');
 })();
 </script>
 </body>
