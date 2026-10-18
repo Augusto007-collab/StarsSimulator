@@ -3743,5 +3743,431 @@ body.noadm .fut.click{cursor:default}
   console.log('Placas: padrão restaurado.');
 })();
 </script>
+<!-- ===== PATCH v19 • cole DEPOIS do v18, antes de </body> ===== -->
+<style>
+/* Gol contra: o nome do time aparece com o espelhamento da escrita */
+.bn-word .mir{display:inline-block;transform:scaleX(-1)}
+#bn-ov.og .bn-word{background:linear-gradient(90deg,transparent,var(--tc) 10%,var(--tc) 90%,transparent)!important}
+</style>
+
+<script>
+(function(){
+  const WEEK=7*864e5;
+  if(typeof futCard!=='function'||typeof chance!=='function'||typeof goalItem!=='function'||typeof banner!=='function'||typeof pick!=='function'||typeof isAdmin!=='function'){
+    console.error('PATCH v19: rode depois do v18 (faltam funções da base).');return;
+  }
+  const readTW=()=>load('stars_totw',{ids:[],start:0,upd:0});
+  const actTW=t=>!!(t&&t.ids&&t.ids.length>0&&Date.now()-t.start<WEEK);
+
+  /* =====================================================================
+     1) SELEÇÃO DA SEMANA: botão "Remover" acima de cada card (fora do card)
+        e mensagem quando não há atletas (sem data de encerramento)
+     ===================================================================== */
+  window.twRender=function(){
+    const t=readTW(),act=actTW(t);
+    const L=act?t.ids.map(id=>players.find(p=>p.id===id)).filter(Boolean).sort(byPos):[];
+    const d=Math.max(1,Math.ceil((t.start+WEEK-Date.now())/864e5));
+    const info=$('tw-info'),grid=$('tw-grid');
+    if(info)info.textContent=L.length
+      ?`${L.length} atleta(s) • +3 de overall • vale até ${new Date(t.start+WEEK).toLocaleDateString('pt-BR')} (${d} dia(s))`
+      :'A Seleção da Semana só começa a valer quando tiver ao menos 1 atleta.';
+    if(!grid)return;
+    const admin=isAdmin();
+    grid.innerHTML=L.length
+      ?L.map(p=>`<div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">${admin?`<button class="btn dng" style="min-width:170px;font-size:.95rem" onclick="twRemoveOne('${p.id}')">✖ Remover da semana</button>`:''}${futCard(p,{})}</div>`).join('')
+      :'<p style="color:var(--muted);grid-column:1/-1">Nenhum atleta na Seleção da Semana.</p>';
+  };
+  window.twRender();
+
+  /* =====================================================================
+     2) GOL CONTRA: a jogada é contabilizada para o adversário.
+        Animação: começa com as cores do time do jogador que marcou contra,
+        depois muda para as cores do adversário, a escrita aparece invertida
+        (GOOOL → LOOOG) e aparece a descrição "Gol contra".
+     ===================================================================== */
+  function ownGoalItem(sd,d){
+    const dside=sd==='home'?'away':'home';
+    const defT=dside==='home'?M.h:M.a,attT=sd==='home'?M.h:M.a;
+    const m=M;
+    return{ms:4600,
+      show(){
+        if(sd==='home'){M.sh++;$('s-home').textContent=M.sh}else{M.sa++;$('s-away').textContent=M.sa}
+        M.hs.goals++;M.st[sd].on++;
+        tick(`😱 GOL CONTRA! ${d.name} (${defT.name}) marca contra o próprio gol (${clock()})`);
+        const b=banner({word:'GOOOL',team:defT,side:dside,photo:d.photo||PH,name:d.name,sub:`${defT.name.toUpperCase()} • ${clock()}`,score:1,hit:sd,ms:4600});
+        b.show();
+        setTimeout(()=>{
+          if(M!==m)return;
+          const bn=$('bn');
+          bn.style.setProperty('--tc',c1(attT));bn.style.setProperty('--tc2',c2(attT));
+          const w=$('bn-in').querySelector('.bn-word');
+          if(w)w.innerHTML='<span class="mir">LOOOG</span>';
+          $('bn-ov').classList.add('og');
+        },1200);
+        setTimeout(()=>{
+          if(M!==m)return;
+          const g=$('bn-in').querySelector('.gname');
+          if(g)g.innerHTML=`<small>GOL CONTRA</small>${esc(d.name)} (${esc(defT.name)}) contra o próprio gol`;
+        },2400);
+      },
+      hide(){$('bn-ov').classList.remove('on','og');setBall(50,50)}
+    };
+  }
+  const _ch19=chance;
+  chance=function(c){
+    if(Math.random()<.015){
+      const sd=c.home?'home':'away';
+      const d=pick(c.def,FOULW);
+      if(d){
+        M.lastSh=sd;
+        Q(ownGoalItem(sd,d));
+        return;
+      }
+    }
+    return _ch19(c);
+  };
+
+  console.log('PATCH v19 aplicado.');
+})();
+</script>
+<!-- ===== PATCH v20 • cole DEPOIS do v19, antes de </body> ===== -->
+<style>
+.sredcard{position:absolute;top:-12px;right:-8px;width:13px;height:18px;background:#e0141e;border:2px solid #fff;border-radius:2px;box-shadow:0 2px 6px rgba(0,0,0,.6);z-index:6;display:block;pointer-events:none}
+#lg-play{margin-bottom:1rem}
+#lg-play:empty{display:none}
+#lg-lineup .lgl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem;margin-top:.6rem}
+</style>
+
+<script>
+(function(){
+  if(typeof playFix!=='function'||typeof recordResult!=='function'||typeof lineup!=='function'||typeof simFix!=='function'||typeof goTab!=='function'||typeof giveUp!=='function'){
+    console.error('PATCH v20: rode depois do v19 (faltam funções da base).');return;
+  }
+
+  /* ---------- containers na aba Ligas ---------- */
+  (function(){
+    const tab=document.getElementById('tab-leagues');if(!tab)return;
+    if(!document.getElementById('lg-play'))tab.insertAdjacentHTML('afterbegin','<div id="lg-play"></div>');
+    if(!document.getElementById('lg-lineup')){const sb=document.getElementById('season-box');(sb||tab).insertAdjacentHTML('afterend','<div id="lg-lineup"></div>')}
+  })();
+
+  /* ---------- regras de suspensão no formulário de criação de liga ---------- */
+  (function(){
+    const anchor=$('l-ko')&&$('l-ko').closest('.fg');
+    if(anchor&&!document.getElementById('l-susy')){
+      anchor.insertAdjacentHTML('afterend',`<div class="row" style="gap:.5rem;align-items:flex-start">
+        <div class="fg" style="flex:1"><label>Suspensão por amarelos</label><select id="l-susy" class="fc"><option value="0">Desligado</option><option value="3">A cada 3</option><option value="5">A cada 5</option><option value="7">A cada 7</option><option value="10">A cada 10</option></select></div>
+        <div class="fg" style="flex:1"><label>Suspensão por vermelho</label><select id="l-susr" class="fc"><option value="1">1 jogo</option><option value="2">2 jogos</option><option value="3">3 jogos</option></select></div></div>`);
+    }
+  })();
+  const _sl20=saveLeague;
+  saveLeague=function(e){
+    const before=leagues.length;
+    _sl20(e);
+    if(leagues.length>before){
+      const L=leagues[leagues.length-1];
+      L.susY=+($('l-susy')?$('l-susy').value:0)||0;
+      L.susR=+($('l-susr')?$('l-susr').value:1)||1;
+      store('stars_leagues',leagues);
+    }
+  };
+
+  /* ---------- helpers ---------- */
+  const isSusV=id=>!!(S&&S.sus&&S.sus[id]>0);
+  const effTeam=t=>{
+    if(!t||!S||!S.lu||!S.lu[t.id]||!(S.coached||[]).includes(t.id))return t;
+    const L=S.lu[t.id];
+    return{...t,formation:L.formation,atk:L.atk,def:L.def,tactics:L.tactics};
+  };
+  const boost20=p=>(window.isTotw&&window.isTotw(p.id))?{...p,ovr:Math.min(99,p.ovr+3),totw:1}:p;
+
+  /* ---------- escalação: suspensos não jogam nas partidas da liga ---------- */
+  lineup=function(team){
+    const inLeague=!!(S&&S.teamIds&&S.teamIds.includes(team.id));
+    const roster=players.filter(p=>p.teamId===team.id).map(boost20);
+    const avail=inLeague?roster.filter(p=>!isSusV(p.id)):roster;
+    const used=new Set(),on=[];
+    for(let i=0;i<11;i++){const p=avail.find(x=>x.id===(team.tactics||{})['s'+i]);if(p&&!used.has(p.id)){on.push(p);used.add(p.id)}}
+    const rest=avail.filter(p=>!used.has(p.id)).sort((a,b)=>b.ovr-a.ovr);
+    while(on.length<11&&rest.length)on.push(rest.shift());
+    return{on,bench:rest.sort(byPos)};
+  };
+
+  /* ---------- cartões da partida (para suspensão) ---------- */
+  const _gc20=giveCardTo;
+  giveCardTo=function(p,side,why,forceRed){
+    const r0=M.hs.rc,y0=M.hs.yc;
+    _gc20(p,side,why,forceRed);
+    if(M.hs.rc>r0){M.redCards=M.redCards||[];M.redCards.push(p.id)}
+    if(M.hs.yc>y0){M.yelCards=M.yelCards||[];M.yelCards.push(p.id)}
+  };
+  function lgDecSus(hId,aId){
+    if(!S||!S.sus)return;
+    Object.keys(S.sus).forEach(id=>{
+      const p=players.find(x=>x.id===id);
+      if(p&&(p.teamId===hId||p.teamId===aId)&&S.sus[id]>0)S.sus[id]--;
+    });
+  }
+  function lgApplyCards(m){
+    if(!S)return;
+    const L=leagues.find(x=>x.id===S.leagueId)||{};
+    const susR=L.susR||1,susY=L.susY||0;
+    S.sus=S.sus||{};S.cy=S.cy||{};
+    (m.redCards||[]).forEach(id=>{S.sus[id]=Math.max(S.sus[id]||0,susR)});
+    (m.yelCards||[]).forEach(id=>{
+      if(!susY)return;
+      S.cy[id]=(S.cy[id]||0)+1;
+      if(S.cy[id]>=susY){S.sus[id]=Math.max(S.sus[id]||0,1);S.cy[id]=0}
+    });
+  }
+  const _sf20=simFix;
+  simFix=function(f){_sf20(f);if(S&&S.phase!=='done')lgDecSus(f.h,f.a)};
+
+  /* ---------- partida da liga roda dentro da aba Ligas ---------- */
+  function lgRestore(){
+    const mg=$('lg-play')&&$('lg-play').querySelector('.match-grid');
+    if(mg)$('tab-match').appendChild(mg);
+  }
+  playFix=function(i){
+    const f=curFix()[i];if(!f||f.r)return;
+    if(M&&M.ctx)return toast('Termine a partida atual antes de jogar outra.');
+    const bad=[f.h,f.a].filter(id=>S.coached.includes(id)).flatMap(id=>{
+      const tac=effTeam(teamOf(id)).tactics||{};
+      return Object.values(tac).filter(pid=>pid&&isSusV(pid)).map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
+    });
+    if(bad.length)return toast('Substitua antes de jogar (suspenso): '+bad.map(p=>p.name).join(', '));
+    $('sel-home').value=f.h;$('sel-away').value=f.a;onTeamChange();
+    const H=effTeam(teamOf(f.h)),A=effTeam(teamOf(f.a));
+    M.h=H;M.a=A;M.lh=lineup(H);M.la=lineup(A);
+    M.tac={home:{atk:H.atk||'eq',def:H.def||'eq'},away:{atk:A.atk||'eq',def:A.def||'eq'}};
+    M.hid={home:new Set(),away:new Set()};
+    M.ctx={f,ri:S.ri,phase:S.phase};M.lg=1;
+    M.ctl={home:S.coached.includes(f.h),away:S.coached.includes(f.a)};
+    lockSel(true);
+    paint();layoutDots();buildTac();btns();
+    const mg=document.querySelector('#tab-match .match-grid');
+    if(mg)$('lg-play').appendChild(mg);
+    goTab('leagues');
+    renderRoundBox();
+  };
+  const _gt20=goTab;
+  goTab=function(id){
+    if(id==='match'&&M&&M.ctx&&M.lg)return _gt20('leagues');
+    if(id==='match')lgRestore();
+    return _gt20(id);
+  };
+  giveUp=function(){
+    if(M){M.ctx=null;M.lg=0}
+    lgRestore();lockSel(false);onTeamChange();
+  };
+
+  /* ---------- resultado: registrado sempre que a partida da liga termina ---------- */
+  recordResult=function(m,pen){
+    const cx=m.ctx;m.ctx=null;
+    if(!S||!cx||!cx.f||cx.f.r){if(m.lg){lgRestore();m.lg=0}return}
+    const f=cx.f;
+    f.r={hg:m.sh,ag:m.sa};
+    if(S.phase==='ko'&&m.sh===m.sa){
+      f.r.pen=pen?{h:pen.h,a:pen.a}:shootout(f);
+      if(!pen)tick(`🥅 Pênaltis: ${tn(f.h)} ${f.r.pen.h} x ${f.r.pen.a} ${tn(f.a)}`);
+    }
+    lgDecSus(f.h,f.a);
+    lgApplyCards(m);
+    saveS();
+    if(m.lg){lgRestore();m.lg=0}
+    renderSeason();
+    log(`Resultado da liga: ${tn(f.h)} ${f.r.hg} x ${f.r.ag} ${tn(f.a)}`,'match');
+  };
+
+  /* ---------- escalação e tática da liga (não altera o clube) ---------- */
+  function lgSave(){
+    const box=$('lg-lineup'),cur=box.dataset.team;
+    if(M&&M.lg&&M.ctx&&(M.h.id===cur||M.a.id===cur))return toast('Não dá para mudar a escalação durante a partida desta equipe.');
+    const f=$('lgl-f').value,atk=$('lgl-a').value,def=$('lgl-d').value;
+    const F=FORMS[f]||[];const tac={};const used=new Set();
+    for(let i=0;i<F.length;i++){
+      const v=box.querySelector(`select[data-slot="${i}"]`).value;
+      if(!v)continue;
+      if(used.has(v))return toast('Um atleta não pode ocupar duas posições.');
+      const p=players.find(x=>x.id===v);
+      if(i===0&&p&&p.pos!=='GK')return toast('O goleiro precisa ser um atleta GK.');
+      used.add(v);tac['s'+i]=v;
+    }
+    S.lu=S.lu||{};S.lu[cur]={formation:f,atk,def,tactics:tac};
+    saveS();toast('Escalação da liga salva.');renderLgLineup();
+  }
+  function lgReset(){
+    const cur=$('lg-lineup').dataset.team;
+    if(S&&S.lu)delete S.lu[cur];saveS();toast('Escalação da liga voltou ao padrão do clube.');renderLgLineup();
+  }
+  window.lgSelTeam=function(id){$('lg-lineup').dataset.team=id;renderLgLineup()};
+  window.lgSave=lgSave;window.lgReset=lgReset;
+  window.renderLgLineup=renderLgLineup;
+  function renderLgLineup(){
+    const box=$('lg-lineup');if(!box)return;
+    if(!S||!S.coached||!S.coached.length){box.innerHTML='';return}
+    const ids=S.coached;
+    const cur=ids.includes(box.dataset.team)?box.dataset.team:ids[0];
+    box.dataset.team=cur;
+    const t=teamOf(cur);if(!t){box.innerHTML='';return}
+    const E=(S.lu&&S.lu[cur])||{formation:t.formation||'4-3-3',atk:t.atk||'eq',def:t.def||'eq',tactics:{...(t.tactics||{})}};
+    const F=FORMS[E.formation]||FORMS['4-3-3'];
+    const roster=players.filter(p=>p.teamId===cur).sort(byPos);
+    const fOpts=Object.keys(FORMS).map(k=>`<option value="${k}" ${k===E.formation?'selected':''}>${k}</option>`).join('');
+    const aOpts=Object.entries(ATK).map(([k,v])=>`<option value="${k}" ${k===E.atk?'selected':''}>${v.n}</option>`).join('');
+    const dOpts=Object.entries(DEF).map(([k,v])=>`<option value="${k}" ${k===E.def?'selected':''}>${v.n}</option>`).join('');
+    const slots=F.map(([lb],i)=>{
+      const pid=E.tactics['s'+i];
+      const opts=roster.filter(p=>i===0?p.pos==='GK':true).map(p=>`<option value="${p.id}" ${p.id===pid?'selected':''}>${isSusV(p.id)?'🟥 ':''}${esc(p.name)} (${p.pos} ${p.ovr})</option>`).join('');
+      return `<label style="display:flex;flex-direction:column;font-size:.75rem;color:var(--muted)">${i===0?'GK':lb}<select class="fc" data-slot="${i}" style="padding:.3rem .4rem"><option value="">(vazio)</option>${opts}</select></label>`;
+    }).join('');
+    box.innerHTML=`<div class="panel" style="margin-top:1rem">
+      <h3 class="t">Escalação e tática na liga</h3>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem">Ajustes só valem para esta liga. O clube não é alterado. 🟥 = suspenso (precisa ser trocado antes de jogar).</p>
+      <div class="row" style="gap:.5rem">
+        <select id="lgl-team" class="fc" style="flex:1" onchange="lgSelTeam(this.value)">${ids.map(id=>`<option value="${id}" ${id===cur?'selected':''}>${esc(tn(id))}</option>`).join('')}</select>
+        <select id="lgl-f" class="fc" style="flex:1">${fOpts}</select>
+        <select id="lgl-a" class="fc" style="flex:1">${aOpts}</select>
+        <select id="lgl-d" class="fc" style="flex:1">${dOpts}</select></div>
+      <div class="lgl-grid">${slots}</div>
+      <div class="row" style="margin-top:.8rem"><button class="btn" onclick="lgSave()">Salvar escalação da liga</button><button class="btn sec" onclick="lgReset()">Voltar ao padrão do clube</button></div></div>`;
+  }
+
+  /* ---------- redesenha o painel quando a temporada muda ---------- */
+  const _rs20=renderSeason;
+  renderSeason=function(){_rs20();renderLgLineup()};
+
+  /* ---------- indicador vermelho nas posições suspensas (aba Times) ---------- */
+  function markSus(){
+    if(!S)return;
+    document.querySelectorAll('#t-board .slot').forEach(sl=>{
+      const lab=sl.querySelector('[data-drag]');if(!lab)return;
+      if(isSusV(lab.dataset.drag)&&!sl.querySelector('.sredcard'))sl.insertAdjacentHTML('beforeend','<i class="sredcard"></i>');
+    });
+  }
+  const _rt20=renderTactics;
+  renderTactics=function(){_rt20();markSus()};
+
+  /* ---------- ao abrir, recarrega o estado ---------- */
+  renderLgLineup();
+  console.log('PATCH v20 aplicado.');
+})();
+</script>
+<!-- ===== PATCH v21 • cole DEPOIS do v20, antes de </body> ===== -->
+<style>
+/* ===== Campo estilo 365Scores: arquibancada, gramado listrado, iluminação e redes ===== */
+.stage{background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.10),transparent 55%),linear-gradient(180deg,#0b0f15 0%,#161c26 45%,#0b0f15 100%)!important}
+.stage::before{height:46%!important;background:
+  repeating-linear-gradient(90deg,transparent 0 9px,rgba(0,0,0,.35) 9px 10px),
+  repeating-linear-gradient(0deg,#2a303b 0 14px,#1c222c 14px 28px),
+  linear-gradient(180deg,#252b36,#11151c)!important;opacity:1!important}
+.pitch{background:repeating-linear-gradient(90deg,#3c8a35 0 8.33%,#4a9a41 8.33% 16.66%)!important;
+  box-shadow:0 0 0 22px #2c6b2b,0 0 0 26px #163d1a,0 0 60px rgba(255,255,255,.08),0 40px 46px 24px rgba(0,0,0,.85)!important}
+.pitch::before{background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,.22),transparent 60%),linear-gradient(180deg,transparent 70%,rgba(0,0,0,.18))!important}
+.lines,.lines div{border-color:rgba(255,255,255,.95)!important;box-shadow:0 0 2px rgba(255,255,255,.35)}
+.gl,.gr{background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.05))!important;box-shadow:0 0 10px rgba(255,255,255,.35)}
+.goal3d i.p3{background-color:rgba(255,255,255,.10)!important}
+.flag{box-shadow:0 0 6px rgba(255,255,255,.4)}
+</style>
+
+<script>
+(function(){
+  if(typeof simFix!=='function'||typeof foul!=='function'||typeof giveCardTo!=='function'||typeof chance!=='function'||typeof tStr!=='function'||typeof pois!=='function'){
+    console.error('PATCH v21: rode depois do v20 (faltam funções da base).');return;
+  }
+
+  /* =====================================================================
+     1) SIMULAÇÃO: mais equilíbrio, menos goleadas (mas ainda possíveis)
+     ===================================================================== */
+  const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+
+  /* Partidas simuladas da liga: força pesa menos, forma do dia varia, goleada rara */
+  const _sf21=simFix;
+  simFix=function(f){
+    _sf21(f);                                   // mantém contagem de suspensões e pênaltis
+    const diff=(tStr(f.h)-tStr(f.a))/38;
+    const fh=Math.exp(gauss()*.2),fa=Math.exp(gauss()*.2);
+    const lh=Math.min(3.1,Math.max(.45,1.32*Math.exp(diff)*fh));
+    const la=Math.min(3.1,Math.max(.45,1.18*Math.exp(-diff)*fa));
+    let hg=Math.min(7,pois(lh)),ag=Math.min(7,pois(la));
+    const ko=S&&S.phase==='ko';
+    if(ko&&hg===ag){hg+=pois(.25);ag+=pois(.25)}
+    f.r={hg,ag};
+    if(hg===ag&&ko)f.r.pen=shootout(f);
+    else delete f.r.pen;
+  };
+
+  /* Partida ao vivo: menos finalizações, por isso menos gols (o jogo fica mais disputado) */
+  const _ch21=chance;
+  chance=function(c){
+    if(Math.random()<.12)return;               // lance que não vira finalização
+    return _ch21(c);
+  };
+
+  /* Menos faltas em excesso */
+  const _f21=foul;
+  foul=function(c){
+    if(Math.random()<.22)return;
+    return _f21(c);
+  };
+
+  /* Cartões: nem toda falta vira amarelo (valem as regras de exceção já existentes) */
+  const _gc21=giveCardTo;
+  giveCardTo=function(p,side,why,forceRed){
+    if(!forceRed&&Math.random()<.35){
+      tick(`🟡 Falta de ${p.name} sem cartão. (${clock()})`);
+      return;
+    }
+    return _gc21(p,side,why,forceRed);
+  };
+
+  /* =====================================================================
+     2) CAMPO: arquibancada com torcida e placas em contorno (aparência geral)
+     ===================================================================== */
+  (function(){
+    if(!document.getElementById('crowd21')){
+      const st=document.querySelector('.stage');
+      if(st)st.insertAdjacentHTML('afterbegin','<div id="crowd21" style="position:absolute;inset:0 0 auto 0;height:46%;pointer-events:none;z-index:0;opacity:.85;background:radial-gradient(circle at 10% 60%,#ff5a5f 0 1px,transparent 2px) 0 0/14px 10px,radial-gradient(circle at 60% 40%,#ffd65c 0 1px,transparent 2px) 0 0/17px 13px,radial-gradient(circle at 30% 80%,#8fd3ff 0 1px,transparent 2px) 0 0/19px 11px"></div>');
+    }
+  })();
+
+  console.log('PATCH v21 aplicado.');
+})();
+</script>
+
+<script>
+/* ===== Suspensões: editar as regras de uma liga já criada ===== */
+(function(){
+  if(typeof openLeagueEdit!=='function'||typeof saveLeagueEdit!=='function'||!document.getElementById('m-lg'))return;
+  const m=document.getElementById('m-lg');
+  const row=$('lg-tb').closest('.row')||$('lg-tb').closest('.fg');
+  if(row&&!document.getElementById('lg-susy')){
+    row.insertAdjacentHTML('afterend',`<div class="row" style="gap:.5rem;align-items:flex-start">
+      <div class="fg" style="flex:1"><label>Suspensão por amarelos</label><select id="lg-susy" class="fc"><option value="0">Desligado</option><option value="3">A cada 3</option><option value="5">A cada 5</option><option value="7">A cada 7</option><option value="10">A cada 10</option></select></div>
+      <div class="fg" style="flex:1"><label>Suspensão por vermelho</label><select id="lg-susr" class="fc"><option value="1">1 jogo</option><option value="2">2 jogos</option><option value="3">3 jogos</option></select></div></div>`);
+  }
+  const _ole=openLeagueEdit;
+  openLeagueEdit=function(id){
+    _ole(id);
+    const L=leagues.find(x=>x.id===id);if(!L)return;
+    if($('lg-susy'))$('lg-susy').value=String(L.susY||0);
+    if($('lg-susr'))$('lg-susr').value=String(L.susR||1);
+  };
+  const _sle=saveLeagueEdit;
+  saveLeagueEdit=function(){
+    const id=$('lg-id').value;
+    _sle();
+    if(!m.classList.contains('on')){                 // salvou com sucesso
+      const L=leagues.find(x=>x.id===id);
+      if(L){
+        L.susY=+($('lg-susy')?$('lg-susy').value:0)||0;
+        L.susR=+($('lg-susr')?$('lg-susr').value:1)||1;
+        store('stars_leagues',leagues);
+        log(`Regras de suspensão da liga ${L.name} atualizadas`);
+      }
+    }
+  };
+})();
+</script>
 </body>
 </html>
