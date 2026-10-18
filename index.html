@@ -3716,5 +3716,32 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v18 aplicado.');
 })();
 </script>
+
+<style>
+/* ===== Placas de publicidade: volta ao padrão anterior (topo e laterais no lugar certo) ===== */
+.adb{background:linear-gradient(#10151c,#1d2530)!important;border:1px solid #8a96a6!important;overflow:hidden!important;z-index:1!important}
+.adb.t{left:-3%!important;right:-3%!important;top:-44px!important;height:40px!important;transform-origin:bottom!important;transform:rotateX(-90deg)!important}
+.adb.l,.adb.r{top:-2%!important;bottom:-2%!important;width:40px!important;transform:none!important}
+.adb.l{left:-64px!important;right:auto!important}
+.adb.r{right:-64px!important;left:auto!important}
+</style>
+<script>
+/* Placas laterais: a da esquerda gira no sentido oposto (fica de pé, não de cabeça para baixo) */
+(function(){
+  window.fitSide=function(){
+    document.querySelectorAll('.adb.l,.adb.r').forEach(b=>{
+      const H=b.offsetHeight||400,ang=b.classList.contains('l')?-90:90;
+      b.querySelectorAll('.adi').forEach(e=>{
+        e.style.width=H+'px';e.style.height='40px';
+        e.style.left='50%';e.style.top='50%';e.style.right='auto';e.style.bottom='auto';
+        e.style.transform='translate(-50%,-50%) rotate('+ang+'deg)';
+      });
+    });
+  };
+  window.addEventListener('resize',()=>window.fitSide());
+  if(typeof renderAds==='function')renderAds();
+  console.log('Placas: padrão restaurado.');
+})();
+</script>
 </body>
 </html>
