@@ -4417,5 +4417,74 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v24 aplicado.');
 })();
 </script>
+<!-- ===== PATCH v25 • salvar clube independente • cole DEPOIS do v24, antes de </body> ===== -->
+<script>
+(function(){
+  const form=document.querySelector('#tab-teams form');
+  if(!form){console.error('[Stars] PATCH v25: formulário de clube não encontrado.');return}
+  const val=(id,d='')=>{const e=document.getElementById(id);return e?e.value:d};
+  const setv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v};
+
+  function resetClubForm(){
+    editTeamId=null;tactics={};
+    ['t-name','t-code','t-logo','t-stadium','t-stadimg','t-fans'].forEach(i=>setv(i,''));
+    setv('t-c1','#1e5bd8');setv('t-c2','#ffffff');setv('t-form','4-3-3');setv('t-league','');
+    setv('t-atk','eq');setv('t-def','eq');setv('t-vis','pub');
+    const title=document.getElementById('team-title');if(title)title.textContent='Gerenciar clube';
+    const c=document.getElementById('t-cancel');if(c)c.style.display='none';
+    try{renderTactics()}catch(e){console.error(e)}
+  }
+
+  form.removeAttribute('onsubmit');
+  form.addEventListener('submit',e=>{
+    e.preventDefault();
+    try{
+      const name=val('t-name').trim(),code=val('t-code').trim().toUpperCase();
+      if(!name)return toast('Digite o nome do clube.');
+      if(code.length!==3)return toast('A sigla precisa ter 3 letras.');
+      if(teams.some(t=>t.id!==editTeamId&&t.name.toLowerCase()===name.toLowerCase()))return toast('Já existe um clube com esse nome.');
+      const lg=val('t-league');
+      const L=leagues.find(l=>l.id===lg);
+      if(L&&teams.filter(t=>t.leagueId===lg&&t.id!==editTeamId).length>=L.size)return toast(`A liga ${L.name} já está cheia.`);
+
+      const roster=players.filter(p=>p.teamId===editTeamId);
+      const clean={};
+      Object.entries(tactics||{}).forEach(([k,v])=>{const p=roster.find(x=>x.id===v);if(p&&(k!=='s0'||p.pos==='GK'))clean[k]=v});
+      const rid=v=>roster.some(p=>p.id===v)?v:'';
+      const old=teams.find(t=>t.id===editTeamId)||{};
+
+      const t={
+        id:editTeamId||uid(),name,code,
+        logo:val('t-logo').trim()||PH,
+        formation:val('t-form')||'4-3-3',
+        tactics:clean,
+        color:val('t-c1')||'#1e5bd8',color2:val('t-c2')||'#ffffff',
+        leagueId:lg,
+        atk:val('t-atk')||'eq',def:val('t-def')||'eq',
+        captain:rid(val('t-cap')),pk:rid(val('t-pk')),corner:rid(val('t-cor')),fk:rid(val('t-fk')),
+        stadium:val('t-stadium').trim(),stadiumImg:val('t-stadimg').trim(),fans:Math.max(0,+val('t-fans')||0),
+        priv:val('t-vis')==='priv',
+        author:old.author||currentUser
+      };
+      const i=teams.findIndex(x=>x.id===t.id);
+      if(i>=0){teams[i]=t;log(`Editou o clube: ${t.name}`)}else{teams.push(t);log(`Criou o clube: ${t.name}`)}
+      if(!store('stars_teams',teams))return;
+
+      resetClubForm();
+      ['fillSelects','fillTeamSelects','renderTeams','renderPlayers','renderOvr','renderStadium','stats'].forEach(fn=>{
+        try{if(typeof window[fn]==='function')window[fn]()}catch(err){console.error('[Stars]',fn,err)}
+      });
+      try{if(typeof fillTeamSelects==='function')fillTeamSelects()}catch(err){console.error(err)}
+      toast(i>=0?'Clube atualizado.':'Clube salvo.');
+      const g=document.getElementById('teams-grid');if(g)g.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(err){
+      console.error('[Stars] salvar clube:',err);
+      toast('Erro ao salvar o clube: '+(err&&err.message?err.message:err)+' (veja o console)');
+    }
+  });
+
+  console.log('PATCH v25 aplicado: salvar clube independente.');
+})();
+</script>
 </body>
 </html>
