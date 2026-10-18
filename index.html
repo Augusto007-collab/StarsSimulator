@@ -3410,5 +3410,21 @@ body.noadm .fut.click{cursor:default}
   window.addEventListener('resize',window.fitSide);
 })();
 </script>
+
+<script>
+/* ===== Seleção da Semana: o MingauCoach escolhe de 1 a 30 atletas ===== */
+(function(){
+  if(typeof twPickSave!=='function'||!document.getElementById('m-totw'))return;
+  const _save=window.twPickSave;
+  window.twPickSave=function(){
+    const n=parseInt(($('tp-n')&&$('tp-n').textContent)||'0',10)||0;
+    if(n<1)return toast('Escolha de 1 a 30 atletas para a Seleção da Semana.');
+    if(n>30)return toast('O máximo é 30 atletas.');
+    return _save();
+  };
+  const hint=document.querySelector('#m-totw p');
+  if(hint)hint.textContent='Escolha de 1 a 30 atletas. Eles ganham +3 de overall e o card TOTW por 7 dias.';
+})();
+</script>
 </body>
 </html>
