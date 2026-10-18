@@ -4216,5 +4216,68 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v22 aplicado: variedade de placares.');
 })();
 </script>
+<!-- ===== PATCH v23 • correção de emergência dos botões • cole DEPOIS do v22, antes de </body> ===== -->
+<script>
+(function(){
+  /* ---------- 0) Registro de erros: aparece no console (F12) ---------- */
+  window.addEventListener('error',e=>console.error('[Stars] erro:',e.message,e.filename,e.lineno));
+  window.addEventListener('unhandledrejection',e=>console.error('[Stars] promessa:',e.reason));
+
+  /* ---------- 1) Tira overlays que possam estar bloqueando a tela ---------- */
+  function clearOverlays(){
+    const intro=document.getElementById('intro');if(intro)intro.remove();
+    document.querySelectorAll('.modal.on').forEach(m=>{
+      if(m.id==='m-coach'&&!(typeof currentUser!=='undefined'&&currentUser))return; // tela de entrada fica
+      m.classList.remove('on');
+    });
+    const ht=document.getElementById('htov');if(ht)ht.classList.remove('on');
+    const bn=document.getElementById('bn-ov');if(bn&&!bn.classList.contains('on'))bn.style.pointerEvents='none';
+  }
+  clearOverlays();
+  setTimeout(clearOverlays,4200);
+
+  /* ---------- 2) Troca de aba simples e isolada (não depende das camadas anteriores) ---------- */
+  function showTab(id){
+    if(id==='logs'&&!(typeof isAdmin==='function'&&isAdmin()))return;
+    if(id==='match'&&typeof M!=='undefined'&&M&&M.ctx&&M.lg)id='leagues';   // partida da liga fica na aba Ligas
+    const tab=document.getElementById('tab-'+id);
+    if(!tab){console.warn('Aba não encontrada:',id);return}
+    if(id==='match'){
+      const lp=document.getElementById('lg-play'),mg=lp&&lp.querySelector('.match-grid');
+      if(mg&&!(typeof M!=='undefined'&&M&&M.ctx))document.getElementById('tab-match').appendChild(mg);
+    }
+    document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+    tab.classList.add('active');
+    // atualizações da aba: uma falha aqui não impede a troca
+    const run=f=>{try{f()}catch(err){console.error('[Stars] aba '+id+':',err)}};
+    if(id==='teams'){run(()=>fillTeamSelects());run(()=>renderTactics())}
+    if(id==='leagues')run(()=>renderSeason());
+    if(id==='logs')run(()=>renderLogs());
+    if(id==='totw'&&typeof twRender==='function')run(()=>twRender());
+    if(id==='players')run(()=>renderPlayers());
+  }
+  window.goTab=function(id){showTab(id)};
+
+  /* ---------- 3) Botões da barra de navegação religados ---------- */
+  document.querySelectorAll('header .nav-btn[data-tab]').forEach(b=>{
+    const n=b.cloneNode(true);b.replaceWith(n);
+    n.addEventListener('click',e=>{e.preventDefault();showTab(n.dataset.tab)});
+  });
+  const tabTotw=document.querySelector('.nav-btn[data-tab="totw"]');
+  if(!tabTotw){
+    const ref=document.getElementById('nav-logs');
+    if(ref){const nb=document.createElement('button');nb.className='nav-btn';nb.dataset.tab='totw';nb.textContent='Seleção da Semana';nb.addEventListener('click',()=>showTab('totw'));ref.before(nb)}
+  }
+
+  /* ---------- 4) Demais botões de tela: fecham modais ao clicar fora ---------- */
+  document.querySelectorAll('.modal').forEach(m=>{
+    if(m.id==='m-coach')return;
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')});
+  });
+
+  console.log('PATCH v23 aplicado: navegação restabelecida.');
+})();
+</script>
 </body>
 </html>
