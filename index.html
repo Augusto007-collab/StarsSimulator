@@ -3248,5 +3248,167 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v14 aplicado.');
 })();
 </script>
+<!-- ===== PATCH v15 • cole DEPOIS do v14, antes de </body> ===== -->
+<style>
+/* ---- Dourado da Seleção da Semana (aba Times e banners) ---- */
+.goldfx{background:linear-gradient(135deg,#6b4c00,#f6d365 38%,#fff3b0 52%,#c9951a)!important;color:#2b1c00!important;border-color:#fff3b0!important;box-shadow:0 0 14px rgba(255,205,60,.6)!important}
+.goldfx label,.goldfx span,.goldfx small{color:#2b1c00!important}
+#bn-ov.tw{background:radial-gradient(ellipse at center,rgba(255,205,60,.28),rgba(0,0,0,.9) 70%)!important}
+#bn-ov.tw .bn-word{background:linear-gradient(90deg,transparent,#c9951a 10%,#fff3b0 50%,#c9951a 90%,transparent)!important;color:#2b1c00!important;text-shadow:0 2px 0 #fff3b0,0 6px 18px rgba(0,0,0,.5)!important}
+#bn-ov.tw .face{border-color:#ffd65c!important;box-shadow:0 0 34px rgba(255,205,60,.9)!important}
+#bn-ov.tw .gname small,#bn-ov.tw .gname{color:#fff3b0}
+#bn-ov.tw .bn-info{position:relative}
+.twscr{position:absolute;left:calc(50% - 170px);bottom:-18px;transform:rotate(-8deg);font-family:'Mrs Saint Delafield',cursive;line-height:.85;text-align:left;pointer-events:none;z-index:3}
+.twscr span{display:block;font-size:2.6rem;background:linear-gradient(180deg,#fff7c9,#f6d365 45%,#b8860b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 6px rgba(255,205,60,.7));clip-path:inset(0 100% 0 0);animation:twwrite 1.5s .5s ease-out forwards}
+.twscr span+span{animation-delay:1.5s}
+@keyframes twwrite{to{clip-path:inset(0 0 0 0)}}
+/* ---- Hat-trick ---- */
+#htov{position:fixed;inset:0;z-index:99998;display:none;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center,rgba(0,0,0,.25),rgba(0,0,0,.92));overflow:hidden;perspective:900px}
+#htov.on{display:flex}
+.htnet{position:absolute;inset:0;pointer-events:none}
+.htb{position:absolute;left:50%;top:50%;width:46px;height:46px;border-radius:50%;background:center/contain no-repeat;animation:htfly 1.3s var(--d) cubic-bezier(.3,.7,.4,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.6))}
+@keyframes htfly{0%{transform:translate(calc(-50% + var(--x0)),calc(-50% + var(--y0))) scale(.4);opacity:0}12%{opacity:1}100%{transform:translate(-50%,-50%) translate(0,-30vh) scale(.5);opacity:0}}
+.htt{position:relative;font:700 clamp(3.5rem,13vw,9rem)/1 var(--ft);letter-spacing:4px;color:#fff;transform-style:preserve-3d;animation:htin .9s .9s both;text-shadow:0 1px 0 #ddd,0 2px 0 #bbb,0 3px 0 #999,0 4px 0 #777,0 5px 0 #555,0 14px 26px rgba(0,0,0,.7),0 0 40px rgba(255,255,255,.5)}
+.htt.g{color:#fff7c9;text-shadow:0 1px 0 #fff3b0,0 2px 0 #f6d365,0 3px 0 #d4a017,0 4px 0 #a87a10,0 5px 0 #7a5a05,0 14px 26px rgba(0,0,0,.7),0 0 46px rgba(255,205,60,.9)}
+.htn{margin-top:1rem;font:700 1.6rem var(--fs);color:#fff;letter-spacing:2px;animation:htin .8s 1.4s both}
+@keyframes htin{0%{opacity:0;transform:rotateX(90deg) scale(.4)}60%{opacity:1;transform:rotateX(-8deg) scale(1.08)}100%{opacity:1;transform:rotateX(0) scale(1)}}
+/* ---- Início: Seleção da Semana ---- */
+#totw-home .fut{transform:scale(.92)}
+/* ---- Anúncios: contornam o campo (topo e laterais), de frente para o centro ---- */
+.adb{position:absolute;background:transparent!important;border:0!important;z-index:1}
+.adb.t{left:0;right:0;top:-44px;height:42px;overflow:hidden;transform-origin:50% 100%;transform:rotateX(-90deg)}
+.adb.l,.adb.r{top:0;bottom:0;width:42px;overflow:hidden}
+.adb.l{left:-44px;transform-origin:100% 50%;transform:rotateY(90deg)}
+.adb.r{right:-44px;transform-origin:0 50%;transform:rotateY(-90deg)}
+.adb .adi{position:absolute;inset:0;opacity:0;transition:opacity .6s;background-color:#10151c}
+.adb .adi.on{opacity:1}
+/* ---- Bola entrando no gol ---- */
+.ball.inet{transform:translate(-50%,-100%) scale(.7);opacity:.85}
+</style>
+
+<script>
+(function(){
+  if(typeof isTotw!=='function'||typeof banner!=='function'||typeof goalItem!=='function'||typeof playBall!=='function'||typeof fitSide!=='function'||typeof renderTactics!=='function'){
+    console.error('PATCH v15: rode depois do v14 (faltam funções da base).');return;
+  }
+  document.head.insertAdjacentHTML('beforeend','<style>.htb{background-image:url("'+BALL_URL+'")!important}</style>');
+
+  const twIds=()=>players.filter(p=>isTotw(p.id));
+  const twNames=()=>new Set(twIds().map(p=>p.name));
+
+  /* =====================================================================
+     1) INÍCIO: sai "Partidas realizadas" e entram 3 atletas da Seleção da Semana
+        (trocam sozinhos a cada 6s; se houver 3 ou menos, mostra todos)
+     ===================================================================== */
+  (function(){
+    const mt=document.getElementById('c-matches');
+    if(mt){const card=mt.closest('.stat');if(card)card.remove()}
+    const stats=document.querySelector('#tab-home .stats');
+    if(stats&&!document.getElementById('totw-home'))stats.insertAdjacentHTML('afterend','<div id="totw-home" style="margin-top:1.4rem"></div>');
+  })();
+  let thOff=0;
+  function renderTotwHome(){
+    const box=document.getElementById('totw-home');if(!box)return;
+    const L=twIds().sort((a,b)=>b.ovr-a.ovr);
+    if(!L.length){box.innerHTML='';return}
+    const n=Math.min(3,L.length),show=[];
+    for(let i=0;i<n;i++)show.push(L[(thOff+i)%L.length]);
+    box.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:.6rem"><h3 class="t" style="margin:0;color:#ffd65c">⭐ Seleção da Semana</h3><small style="color:var(--muted)">${L.length} atleta(s)${L.length>3?' • troca sozinha':''}</small></div><div class="row" style="justify-content:center;gap:1.2rem">${show.map(p=>futCard(p,{})).join('')}</div>`;
+  }
+  setInterval(()=>{const L=twIds();if(L.length>3)thOff=(thOff+3)%L.length;renderTotwHome()},6000);
+  renderTotwHome();
+
+  /* =====================================================================
+     2) TIMES: atletas da seleção ficam com fundo dourado na prancheta e no banco
+     ===================================================================== */
+  function markGold(){
+    document.querySelectorAll('#t-board [data-drag],#t-bench [data-drag]').forEach(el=>{
+      if(!isTotw(el.dataset.drag))return;
+      (el.closest('.slot')||el).classList.add('goldfx');
+    });
+  }
+  const _rt15=renderTactics;
+  renderTactics=function(){_rt15();markGold()};
+  renderTactics();
+
+  /* =====================================================================
+     3) AÇÕES DA PARTIDA: banner dourado para atletas da seleção;
+        gol deles ganha "Jogador da Semana" escrito à mão
+     ===================================================================== */
+  const _bn15=banner;
+  banner=function(c){
+    const b=_bn15(c);
+    const sh=b.show,hd=b.hide;
+    b.show=function(){
+      sh();
+      if(c.name&&twNames().has(c.name)){
+        const ov=$('bn-ov');ov.classList.add('tw');
+        if(c.word==='GOOOL'){
+          const info=ov.querySelector('.bn-info');
+          if(info&&!info.querySelector('.twscr'))info.insertAdjacentHTML('beforeend','<div class="twscr"><span>Jogador</span><span>da Semana</span></div>');
+        }
+      }
+    };
+    b.hide=function(){hd();$('bn-ov').classList.remove('tw')};
+    return b;
+  };
+
+  /* =====================================================================
+     4) HAT-TRICK: 3 gols do mesmo atleta → bolas de futebol 3D na rede + texto 3D
+     ===================================================================== */
+  function htShow(p,team,gold){
+    let ov=$('htov');
+    if(!ov){document.body.insertAdjacentHTML('beforeend','<div id="htov"></div>');ov=$('htov')}
+    const balls=Array.from({length:24},(_,i)=>`<i class="htb" style="--x0:${Math.round(rnd(-44,44))}vw;--y0:${Math.round(rnd(20,60))}vh;--d:${(i*.09).toFixed(2)}s"></i>`).join('');
+    ov.innerHTML=`<div class="htnet">${balls}</div><div class="htt ${gold?'g':''}">HAT-TRICK!</div><div class="htn">${esc(p.name)} • ${esc(team.name)}</div>`;
+    ov.classList.add('on');
+  }
+  function htHide(){const ov=$('htov');if(ov)ov.classList.remove('on')}
+  const _gi15=goalItem;
+  goalItem=function(side,p,pen,varOk,as,how){
+    const b=_gi15(side,p,pen,varOk,as,how);
+    const sh=b.show;
+    b.show=function(){
+      sh();
+      if(p&&M){
+        M.gb=M.gb||{};
+        M.gb[p.id]=(M.gb[p.id]||0)+1;
+        if(M.gb[p.id]===3){
+          const team=side==='home'?M.h:M.a,gold=isTotw(p.id);
+          Q({ms:4200,show(){htShow(p,team,gold)},hide(){htHide()}});
+        }
+      }
+    };
+    return b;
+  };
+  const _nm15=newMatch;
+  newMatch=function(){_nm15();if(M)M.gb={}};
+
+  /* =====================================================================
+     5) BOLA ENTRA NO GOL: a trajetória continua para dentro da rede, e só depois a rede balança
+     ===================================================================== */
+  const _pb15=playBall;
+  playBall=function(pts,sd,goal){
+    if(goal){const ex=sd==='home'?103:-3;pts=[...pts,[ex,50]]}
+    return _pb15(pts,sd,goal);
+  };
+
+  /* =====================================================================
+     6) ANÚNCIOS: fitSide recalcula as placas laterais (cada imagem fica de frente para o centro)
+     ===================================================================== */
+  window.fitSide=function(){
+    document.querySelectorAll('.adb.l,.adb.r').forEach(b=>{
+      const H=b.offsetHeight||400;
+      b.querySelectorAll('.adi').forEach(e=>{
+        e.style.width=H+'px';e.style.height='42px';
+        e.style.left='50%';e.style.top='50%';e.style.right='auto';e.style.bottom='auto';
+        e.style.transform='translate(-50%,-50%) rotate(90deg)';
+      });
+    });
+  };
+  if(typeof renderAds==='function')renderAds();
+  window.addEventListener('resize',window.fitSide);
+})();
+</script>
 </body>
 </html>
