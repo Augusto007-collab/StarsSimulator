@@ -3478,5 +3478,95 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v16 aplicado.');
 })();
 </script>
+<!-- ===== PATCH v17 • cole DEPOIS do v16, antes de </body> ===== -->
+<script>
+(function(){
+  const WEEK=7*864e5;
+  if(!document.getElementById('m-totw')||typeof window.twTog!=='function'||typeof window.openTotwPick!=='function'){
+    console.error('PATCH v17: rode depois do v14/v16 (falta a Seleção da Semana).');return;
+  }
+
+  /* ---------- estado do seletor (espelha a seleção da janela) ---------- */
+  const readTW=()=>load('stars_totw',{ids:[],start:0,upd:0});
+  const actTW=t=>t.ids.length>0&&Date.now()-t.start<WEEK;
+  let SELV=new Set();
+
+  const _open=window.openTotwPick;
+  window.openTotwPick=function(){
+    if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode definir a Seleção da Semana.');
+    const t=readTW();SELV=new Set(actTW(t)?t.ids:[]);
+    return _open();
+  };
+  const _tog=window.twTog;
+  window.twTog=function(id){
+    const had=SELV.has(id);
+    if(!had&&SELV.size>=30)return toast('Máximo de 30 atletas na Seleção da Semana.');
+    _tog(id);
+    if(had)SELV.delete(id);else SELV.add(id);
+    const n=$('tp-n');if(n)n.textContent=SELV.size+'/30';
+  };
+
+  /* ---------- gravação: aceita 0 atletas (limpa) e recarrega para aplicar ---------- */
+  async function twWrite(ids){
+    const cur=readTW();
+    const start=ids.length===0?0:(actTW(cur)?cur.start:Date.now());
+    const data={ids,start,upd:Date.now()};
+    try{localStorage.setItem('stars_totw',JSON.stringify(data));localStorage.setItem('stars_ts',Date.now())}catch(e){}
+    if(cloudOn()){
+      try{await fetch(cloudUrl().replace(/\.json$/,'/totw_v1.json'),{method:'PUT',body:JSON.stringify(data)})}catch(e){}
+    }
+    location.reload();
+  }
+  window.twSaveSel=function(){
+    if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode definir a Seleção da Semana.');
+    log(`Definiu a Seleção da Semana (${SELV.size} atleta(s))`);
+    twWrite([...SELV]);
+  };
+  window.twRemoveOne=function(id){
+    if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode alterar a Seleção da Semana.');
+    const t=readTW();const ids=t.ids.filter(x=>x!==id);
+    const p=players.find(x=>x.id===id);
+    log(`Removeu ${p?p.name:'um atleta'} da Seleção da Semana`);
+    twWrite(ids);
+  };
+
+  /* ---------- botões do modal: religados (sem o erro anterior) ---------- */
+  (function(){
+    const m=document.getElementById('m-totw');
+    const row=m.querySelector('.row:last-of-type')||m.querySelectorAll('.row')[m.querySelectorAll('.row').length-1];
+    const bs=row.querySelectorAll('button');
+    const fresh=b=>{const n=b.cloneNode(true);b.replaceWith(n);return n};
+    const salvar=fresh(bs[0]),cancelar=fresh(bs[1]);
+    salvar.removeAttribute('onclick');cancelar.removeAttribute('onclick');
+    salvar.textContent='Salvar seleção';cancelar.textContent='Cancelar';
+    salvar.addEventListener('click',e=>{e.preventDefault();window.twSaveSel()});
+    cancelar.addEventListener('click',e=>{e.preventDefault();m.classList.remove('on')});
+    m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')});
+  })();
+
+  /* ---------- aba: sem botão "Encerrar seleção" e com "Remover" em cada atleta ---------- */
+  (function(){
+    const tw=document.getElementById('tw-admin');
+    if(tw){[...tw.querySelectorAll('button')].forEach(b=>{if(/Encerrar/i.test(b.textContent))b.remove()})}
+  })();
+  const _twr=window.twRender;
+  window.twRender=function(){
+    _twr();
+    const grid=$('tw-grid');if(!grid)return;
+    const admin=typeof isAdmin==='function'&&isAdmin();
+    const ids=readTW();
+    const L=actTW(ids)?ids.ids.map(id=>players.find(p=>p.id===id)).filter(Boolean).sort(byPos):[];
+    [...grid.children].forEach((card,i)=>{
+      const p=L[i];if(!p||!card.classList)return;
+      const old=card.querySelector('.twrm');if(old)old.remove();
+      if(!admin)return;
+      card.insertAdjacentHTML('beforeend',`<button class="btn dng sm twrm" style="margin-top:.4rem" onclick="twRemoveOne('${p.id}')">✖ Remover da semana</button>`);
+    });
+  };
+  window.twRender();
+
+  console.log('PATCH v17 aplicado.');
+})();
+</script>
 </body>
 </html>
