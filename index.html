@@ -4279,5 +4279,143 @@ body.noadm .fut.click{cursor:default}
   console.log('PATCH v23 aplicado: navegação restabelecida.');
 })();
 </script>
+<!-- ===== PATCH v24 • botões Salvar / Cancelar • cole DEPOIS do v23, antes de </body> ===== -->
+<script>
+(function(){
+  const $$=id=>document.getElementById(id);
+  const closeM=id=>{const m=$$(id);if(m)m.classList.remove('on')};
+  function report(what,err){
+    console.error('[Stars] '+what+':',err);
+    toast('Não foi possível '+what+'. Veja o console (F12).');
+  }
+
+  /* ===================== CLUBE ===================== */
+  (function(){
+    const form=document.querySelector('#tab-teams form');if(!form)return;
+    form.removeAttribute('onsubmit');
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const name=($('t-name').value||'').trim();
+      const editing=!!editTeamId;
+      try{
+        if(typeof saveTeam==='function')saveTeam(e);
+      }catch(err){report('salvar o clube',err);return}
+      const saved=teams.some(t=>t.name===name);
+      if(saved){
+        try{resetTeam()}catch(err){console.error(err);['t-name','t-code','t-logo'].forEach(i=>{if($$(i))$$(i).value=''})}
+        try{renderTeams()}catch(err){console.error(err)}
+        toast(editing?'Clube atualizado.':'Clube salvo.');
+        const g=$$('teams-grid');if(g)g.scrollIntoView({behavior:'smooth',block:'start'});
+      }else if(!toastShown()){
+        toast('O clube não foi salvo. Confira o nome e a sigla (3 letras).');
+      }
+    });
+    const cancel=$$('t-cancel');
+    if(cancel){
+      const n=cancel.cloneNode(true);cancel.replaceWith(n);
+      n.addEventListener('click',e=>{e.preventDefault();try{resetTeam()}catch(err){console.error(err)}toast('Edição cancelada.')});
+    }
+  })();
+  /* toast() do jogo mostra a última mensagem; checamos se ela já foi exibida */
+  function toastShown(){const t=$$('toast');return !!(t&&t.style.display==='block')}
+
+  /* ===================== ATLETA ===================== */
+  (function(){
+    const form=document.querySelector('#tab-players form');if(!form)return;
+    form.removeAttribute('onsubmit');
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const name=($('p-name').value||'').trim();
+      try{
+        if(typeof savePlayer==='function')savePlayer(e);
+      }catch(err){report('salvar o atleta',err);return}
+      if(!players.some(p=>p.name===name&&p.teamId===$('p-team').value)&&!editPlayerId){
+        toast('O atleta não foi salvo. Confira o nome e o clube.');return;
+      }
+      try{resetPlayer()}catch(err){console.error(err)}
+      try{renderPlayers()}catch(err){console.error(err)}
+      toast('Atleta salvo.');
+      const g=$$('players-grid');if(g)g.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+    const cancel=$$('p-cancel');
+    if(cancel){
+      const n=cancel.cloneNode(true);cancel.replaceWith(n);
+      n.addEventListener('click',e=>{e.preventDefault();try{resetPlayer()}catch(err){console.error(err)}toast('Edição cancelada.')});
+    }
+  })();
+
+  /* ===================== SELEÇÃO DA SEMANA (seletor) ===================== */
+  (function(){
+    const m=$$('m-totw');if(!m)return;
+    const WEEK=7*864e5;
+    let SEL=new Set();
+    const read=()=>load('stars_totw',{ids:[],start:0,upd:0});
+    const act=t=>!!(t&&t.ids&&t.ids.length>0&&Date.now()-t.start<WEEK);
+
+    const _open=window.openTotwPick;
+    window.openTotwPick=function(){
+      if(typeof isAdmin==='function'&&!isAdmin())return toast('Apenas o MingauCoach pode definir a Seleção da Semana.');
+      const t=read();SEL=new Set(act(t)?t.ids:[]);
+      if(typeof _open==='function')_open();
+      const n=$$('tp-n');if(n)n.textContent=SEL.size+'/30';
+    };
+    const _tog=window.twTog;
+    window.twTog=function(id){
+      const had=SEL.has(id);
+      if(!had&&SEL.size>=30)return toast('Máximo de 30 atletas na Seleção da Semana.');
+      if(typeof _tog==='function')_tog(id);
+      if(had)SEL.delete(id);else SEL.add(id);
+      const n=$$('tp-n');if(n)n.textContent=SEL.size+'/30';
+    };
+
+    const row=m.querySelectorAll('.row');const bar=row[row.length-1];
+    const bs=bar.querySelectorAll('button');
+    const fresh=b=>{const n=b.cloneNode(true);b.replaceWith(n);return n};
+    const salvar=fresh(bs[0]),cancelar=fresh(bs[1]);
+    salvar.removeAttribute('onclick');cancelar.removeAttribute('onclick');
+    cancelar.addEventListener('click',e=>{e.preventDefault();closeM('m-totw')});
+    salvar.addEventListener('click',e=>{
+      e.preventDefault();
+      closeM('m-totw');                       // fecha primeiro: a tela volta mesmo se algo falhar
+      try{
+        const ids=[...SEL];
+        const cur=read();
+        const start=ids.length===0?0:(act(cur)?cur.start:Date.now());
+        const data={ids,start,upd:Date.now()};
+        localStorage.setItem('stars_totw',JSON.stringify(data));
+        localStorage.setItem('stars_ts',Date.now());
+        if(typeof cloudOn==='function'&&cloudOn())fetch(cloudUrl().replace(/\.json$/,'/totw_v1.json'),{method:'PUT',body:JSON.stringify(data)}).catch(()=>{});
+        if(typeof window.twRender==='function')window.twRender();
+        if(typeof renderTactics==='function')renderTactics();
+        if(typeof renderPlayers==='function')renderPlayers();
+        toast(ids.length?`Seleção salva: ${ids.length} atleta(s).`:'Seleção da Semana limpa.');
+      }catch(err){report('salvar a seleção da semana',err)}
+    });
+  })();
+
+  /* ===================== CANCELAR / FECHAR EM TODOS OS MODAIS ===================== */
+  document.querySelectorAll('.modal').forEach(m=>{
+    m.querySelectorAll('button').forEach(b=>{
+      const t=(b.textContent||'').trim().toLowerCase();
+      if(t==='cancelar'||t==='fechar'){
+        if(b.id==='t-cancel'||b.id==='p-cancel')return;
+        const n=b.cloneNode(true);b.replaceWith(n);
+        n.addEventListener('click',e=>{e.preventDefault();m.classList.remove('on')});
+      }
+    });
+  });
+
+  /* ===================== INICIAR CAMPEONATO: nunca trava o modal ===================== */
+  (function(){
+    if(typeof startSeason!=='function')return;
+    const _ss=startSeason;
+    startSeason=function(){
+      try{_ss()}catch(err){report('iniciar o campeonato',err)}
+    };
+  })();
+
+  console.log('PATCH v24 aplicado.');
+})();
+</script>
 </body>
 </html>
