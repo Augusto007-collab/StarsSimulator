@@ -41,14 +41,14 @@ h2.t{font-size:2.4rem}h3.t{font-size:1.7rem;margin-bottom:.8rem}
 .tick{background:rgba(255,255,255,.03);border-left:3px solid #8fa3b8;padding:.6rem .9rem;border-radius:6px;font-size:.9rem;display:flex;gap:.7rem}
 
 /* Estádio e Campo 3D */
-.stage{height:440px;position:relative;overflow:hidden;border-radius:16px;background:radial-gradient(ellipse at 50% 100%,transparent 35%,rgba(0,0,0,.7)),repeating-linear-gradient(90deg,#3a3f47 0 3px,#292d33 3px 7px),#222}
+.stage{height:440px;perspective:1000px;perspective-origin:50% 20%;position:relative;overflow:hidden;border-radius:16px;background:radial-gradient(ellipse at 50% 100%,transparent 35%,rgba(0,0,0,.7)),repeating-linear-gradient(90deg,#3a3f47 0 3px,#292d33 3px 7px),#222}
 .stage::before{content:'';position:absolute;inset:0 0 auto 0;height:52%;background:radial-gradient(circle at 50% 120%,rgba(255,255,255,.1) 0 2px,transparent 3px) 0 0/7px 6px,linear-gradient(180deg,#15181d,#2a2e35);pointer-events:none}
 .pitch{--tilt:54deg;position:absolute;left:12%;right:12%;top:64px;height:auto;aspect-ratio:1.62;transform:rotateX(54deg);transform-style:preserve-3d;background:repeating-linear-gradient(90deg,#3e8d37 0 8.33%,#4b9c43 8.33% 16.66%);border:3px solid rgba(255,255,255,.95);border-radius:0;box-shadow:0 0 0 22px #2b6a2a,0 0 0 26px #163d1a,0 40px 46px 24px rgba(0,0,0,.85)}
 .pitch::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.14),transparent 62%);pointer-events:none;z-index:0}
 .pitch .wm{position:absolute;left:50%;top:50%;width:130px;transform:translate(-50%,-50%);opacity:.14;pointer-events:none;z-index:0}
 #dots{position:absolute;inset:0;transform-style:preserve-3d;z-index:5}
 .lines,.lines div{position:absolute;border:2px solid rgba(255,255,255,.95)}
-.lines{inset:0;border:0}
+.lines{inset:18px;border:2px solid rgba(255,255,255,.95);pointer-events:none}
 .cl{top:0;bottom:0;left:50%;width:0;border-width:0 0 0 2px!important}
 .cc{top:50%;left:50%;width:110px;height:110px;border-radius:50%;transform:translate(-50%,-50%)}
 .pal{top:25%;left:-2px;width:100px;height:50%;border-left:none!important}
@@ -79,8 +79,8 @@ h2.t{font-size:2.4rem}h3.t{font-size:1.7rem;margin-bottom:.8rem}
 .adprev i{position:absolute;inset:0}
 
 /* Gols 3D */
-.goal3d{--gd:24px;--gh:34px;top:39%;height:22%;width:0;left:0;transform-style:preserve-3d;position:absolute}
-.goal3d.r{left:100%;transform:scaleX(-1)}
+.goal3d{--gd:24px;--gh:34px;top:39%;height:22%;width:0;left:18px;transform-style:preserve-3d;position:absolute}
+.goal3d.r{left:calc(100% - 18px);transform:scaleX(-1)}
 .goal3d i.p3{position:absolute;display:block;background-color:rgba(255,255,255,.07);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px)}
 .goal3d i.back{left:calc(var(--gd)*-1);top:0;width:var(--gh);height:100%;transform-origin:left center;transform:rotateY(-90deg)}
 .goal3d i.mouth{left:0;top:0;width:var(--gh);height:100%;transform-origin:left center;transform:rotateY(-90deg);background:none;border:4px solid #fff;border-left:0;box-shadow:0 0 8px rgba(255,255,255,.7)}
