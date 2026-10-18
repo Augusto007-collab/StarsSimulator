@@ -2924,5 +2924,329 @@ renderMBoard();
   console.log('PATCH v13 aplicado: filtro de clubes por liga + sem limite de atletas.');
 })();
 </script>
+<!-- ===== PATCH v14 • cole DEPOIS do v13, antes de </body> ===== -->
+<style>
+/* ---- Acesso ---- */
+body.noadm #tab-teams .two>.panel:first-child,body.noadm #tab-players .two>.panel:first-child{display:none}
+body.noadm #tab-teams .two,body.noadm #tab-players .two{grid-template-columns:1fr!important}
+body.noadm button[onclick^="editTeam"],body.noadm button[onclick^="deleteTeam"],body.noadm button[onclick^="deletePlayer"],body.noadm button[title="Configuração do jogo"],body.noadm button[title="Nuvem e backup"],body.noadm #tw-admin{display:none!important}
+body.noadm .fut.click{cursor:default}
+/* ---- Escalação com fotos ---- */
+#t-board{height:440px!important}
+.slot img.sph{position:absolute;top:-24px;left:50%;transform:translateX(-50%);width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:50% 0;border:2px solid #fff;background:#16233a;z-index:3;cursor:grab}
+.cph{width:22px;height:22px;border-radius:50%;object-fit:cover;object-position:50% 0;vertical-align:middle;margin-right:.35rem;background:#16233a}
+/* ---- Seleção da Semana: card dourado ---- */
+.fw{position:relative;display:flex;flex-direction:column;align-items:center;padding-bottom:52px}
+.fut.totw{background:linear-gradient(135deg,#7a5a05,#f6d365 32%,#fff0b3 50%,#d4a017 70%,#6b4c00);border-color:#fff3b0;box-shadow:0 0 24px rgba(255,205,60,.6),inset 0 0 18px rgba(255,255,255,.35)}
+.twclip{position:absolute;inset:0;overflow:hidden;border-radius:10px;z-index:0}
+.twbg{position:absolute;left:-30%;right:-30%;top:-30%;bottom:-30%;transform:rotate(-14deg);display:flex;flex-direction:column;gap:3px}
+.twrow{display:flex;gap:10px;white-space:nowrap;width:max-content;font:400 15px/1.1 'Russo One',var(--ft);letter-spacing:1px;color:rgba(110,70,0,.30);animation:twR 7s linear infinite;animation-play-state:paused}
+.twrow:nth-child(even){animation-name:twL}
+.fut.totw:hover .twrow,.fut.totw:active .twrow{animation-play-state:running}
+@keyframes twR{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@keyframes twL{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.fut.totw .ovr,.fut.totw .pos{color:#2b1c00;z-index:2}.fut.totw .club{z-index:2}
+.fut.totw .ph,.fut.totw .nm,.fut.totw .cn{position:relative;z-index:1}
+.fut.totw .nm{color:#2b1c00;text-shadow:0 1px 0 rgba(255,255,255,.45)}.fut.totw .cn{color:#5a3c00}
+.fut.totw .ph{filter:drop-shadow(0 4px 6px rgba(70,40,0,.5))}
+.totwlbl{position:absolute;left:50%;bottom:34px;transform:translateX(-50%) rotate(-5deg);white-space:nowrap;font:400 2.3rem/1 'Mrs Saint Delafield',cursive;background:linear-gradient(180deg,#fff7c9 0%,#f6d365 40%,#c9951a 75%,#8a5d00);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 6px rgba(255,205,60,.55));pointer-events:none;z-index:3}
+.totwlbl::after{content:'Jogador da Semana';position:absolute;left:0;top:100%;margin-top:-4px;background:inherit;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;transform:scaleY(-1);-webkit-mask-image:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.5));mask-image:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.5))}
+/* ---- Abertura animada ---- */
+#intro{position:fixed;inset:0;z-index:20000;background:radial-gradient(ellipse at center,#141b29,#05070b 70%);display:flex;align-items:center;justify-content:center;transition:opacity .9s,transform .9s;cursor:pointer}
+#intro.out{opacity:0;transform:scale(1.12);pointer-events:none}
+#intro-cv{position:absolute;inset:0;width:100%;height:100%}
+.in-c{position:relative;text-align:center}
+.in-logo{width:150px;height:150px;position:relative;animation:inlogo 1.4s .3s cubic-bezier(.2,1.2,.3,1) both;filter:drop-shadow(0 0 22px rgba(255,255,255,.55))}
+.in-ring{position:absolute;left:50%;top:75px;width:240px;height:240px;margin:-120px 0 0 -120px;border:2px solid rgba(255,255,255,.55);border-radius:50%;animation:inring 2.4s .2s ease-out both}
+.in-t{font:700 3.2rem var(--ft);letter-spacing:6px;margin-top:1rem;color:#fff}
+.in-t span{display:inline-block;animation:inl .55s both}
+.in-s{font:600 .85rem var(--fb);letter-spacing:5px;color:#8fa3b8;margin-top:.4rem;animation:inl .8s 1.9s both}
+.in-skip{position:absolute;bottom:24px;left:0;right:0;text-align:center;color:#556;font-size:.75rem;letter-spacing:2px}
+@keyframes inlogo{from{opacity:0;transform:scale(.2) rotate(-200deg)}to{opacity:1;transform:none}}
+@keyframes inring{from{opacity:.9;transform:scale(.4)}to{opacity:0;transform:scale(2.6)}}
+@keyframes inl{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes cin{from{opacity:0;transform:translateY(26px) scale(.95)}to{opacity:1;transform:none}}
+#m-coach .mcard.enter{animation:cin .7s both}
+</style>
+
+<script>
+(function(){
+  const fail=(n,e)=>console.error('PATCH v14 ['+n+']',e);
+  const sect=(n,f)=>{try{f()}catch(e){fail(n,e)}};
+  if(typeof futCard!=='function'||typeof renderTactics!=='function'||typeof pick!=='function'){console.error('PATCH v14: base do jogo não encontrada. Cole depois do v13 e antes de </body>.');return}
+  const PASS='MingauPrime67';
+
+  /* =====================================================================
+     1) ACESSO: só o MingauCoach edita times, atletas, ligas oficiais, placas e nuvem.
+        Os demais jogam e criam ligas personalizadas (só deles).
+     ===================================================================== */
+  sect('acesso',()=>{
+    const MSG='Apenas o MingauCoach pode editar. Você pode jogar e criar ligas personalizadas.';
+    const guard=(n,test,silent)=>{
+      const o=window[n];if(typeof o!=='function')return;
+      window[n]=function(...a){
+        if(!(test?test(...a):isAdmin())){if(a[0]&&a[0].preventDefault)a[0].preventDefault();if(!silent)toast(MSG);return}
+        return o.apply(this,a);
+      };
+    };
+    ['saveTeam','editTeam','deleteTeam','savePlayer','deletePlayer','openAds','saveCloud','importData','adUrl','adFile','adDel','adSet','addAd'].forEach(n=>guard(n));
+    guard('editPlayer',null,true);
+    const lgOk=id=>{if(isAdmin())return true;const l=leagues.find(x=>x.id===id);return !!(l&&(l.custom||l.priv))};
+    guard('deleteLeague',lgOk);guard('openLeagueEdit',lgOk);guard('saveLeagueEdit',()=>lgOk($('lg-id').value));
+    const _sl=saveLeague;
+    saveLeague=function(e){
+      if(!isAdmin()&&!$('l-priv').checked){e.preventDefault();toast('Você só pode criar ligas personalizadas (só você vê).');return}
+      return _sl(e);
+    };
+    const _ar=applyRole;
+    applyRole=function(){
+      _ar();
+      document.body.classList.toggle('noadm',!isAdmin());
+      const c=$('l-priv');
+      if(c){if(!isAdmin())c.checked=true;c.disabled=!isAdmin();if(!isAdmin()&&typeof pvToggleBox==='function')pvToggleBox(true)}
+    };
+    applyRole();
+  });
+
+  /* Senha do MingauCoach na tela de entrada */
+  sect('senha',()=>{
+    const nameEl=$('coach-name');
+    const fg=document.createElement('div');fg.className='fg';fg.id='coach-pass-fg';fg.style.cssText='text-align:left;display:none';
+    fg.innerHTML='<label>Senha</label><input id="coach-pass" type="password" class="fc" placeholder="Senha do MingauCoach" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')registerCoach()">';
+    nameEl.closest('.fg').insertAdjacentElement('afterend',fg);
+    nameEl.addEventListener('input',()=>{fg.style.display=nameEl.value.trim()===ADMIN_NAME?'':'none'});
+    const _rc=registerCoach;
+    registerCoach=function(){
+      const n=$('coach-name').value.trim().replace(/\s+/g,' ');
+      if(n===ADMIN_NAME){
+        if($('coach-pass').value!==PASS){const e=$('coach-err');e.textContent='🔒 Senha incorreta.';e.style.display='block';return}
+        sessionStorage.setItem('stars_auth','1');
+      }else sessionStorage.removeItem('stars_auth');
+      _rc();
+    };
+    /* sessão antiga do MingauCoach sem senha validada: volta para a tela de entrada */
+    if(currentUser===ADMIN_NAME&&sessionStorage.getItem('stars_auth')!=='1'){
+      currentUser='';sessionStorage.removeItem('stars_user');$('user-name').textContent='Técnico';$('m-coach').classList.add('on');applyRole();
+    }
+  });
+
+  /* =====================================================================
+     2) SIMULAÇÃO: bem menos expulsões (meta: ~0,1 por jogo) e cartões mais realistas
+     ===================================================================== */
+  sect('cartoes',()=>{
+    foul=function(c){
+      M.st[c.home?'away':'home'].fouls++;
+      const dside=c.home?'away':'home',aside=c.home?'home':'away';
+      const f=pick(c.def,FOULW),v=pick(c.atk,POSW)||c.atk.on[0];if(!f||!v)return;
+      const s=Math.random();let kind='normal',inj=.004;
+      if(s>.996){kind='violent';inj=.5}else if(s>.95){kind='tactical';inj=.015}else if(s>.82){kind='reckless';inj=.03}
+      tick(`🚩 ${kind==='violent'?'Entrada violenta':kind==='tactical'?'Falta tática':'Falta'} de ${f.name} (${c.defT.name}) em ${v.name}. (${clock()})`);
+      if(kind==='violent')giveCardTo(f,dside,'Entrada violenta',Math.random()<.55);
+      else if(kind==='tactical'){if(Math.random()<.6)giveCardTo(f,dside,'Falta tática para cortar o contra-ataque')}
+      else if(kind==='reckless'&&Math.random()<.7)giveCardTo(f,dside,'Falta imprudente');
+      if(Math.random()<inj)injure(aside,v);
+    };
+    /* árbitro evita o segundo amarelo na maioria das vezes (junto com a tolerância que já existia) */
+    const _gc=giveCardTo;
+    giveCardTo=function(p,side,why,forceRed){
+      if(!forceRed&&M&&(M.cards[p.id]||0)>=1&&Math.random()<.5){tick(`🗣️ O árbitro conversa com ${p.name} e segura o segundo amarelo. (${clock()})`);return}
+      return _gc(p,side,why,forceRed);
+    };
+  });
+
+  /* =====================================================================
+     3) SELEÇÃO DA SEMANA (só o MingauCoach define; dura 7 dias; +3 de overall)
+     ===================================================================== */
+  sect('totw',()=>{
+    document.head.insertAdjacentHTML('beforeend','<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet">');
+    const WEEK=7*864e5;
+    let TW=load('stars_totw',{ids:[],start:0,upd:0});
+    const act=()=>TW.ids.length>0&&Date.now()-TW.start<WEEK;
+    const is=id=>act()&&TW.ids.includes(id);
+    const boost=p=>is(p.id)?{...p,ovr:Math.min(99,p.ovr+3),totw:1}:p;
+    window.isTotw=is;
+
+    /* o bônus entra só nas partidas e nas simulações (os dados salvos não mudam) */
+    lineup=function(team){
+      const roster=players.filter(p=>p.teamId===team.id).map(boost),used=new Set(),on=[];
+      for(let i=0;i<11;i++){const p=roster.find(x=>x.id===(team.tactics||{})['s'+i]);if(p&&!used.has(p.id)){on.push(p);used.add(p.id)}}
+      const rest=roster.filter(p=>!used.has(p.id)).sort((a,b)=>b.ovr-a.ovr);
+      while(on.length<11&&rest.length)on.push(rest.shift());
+      return{on,bench:rest.sort(byPos)};
+    };
+    tStr=function(id){const r=players.filter(p=>p.teamId===id).map(boost).sort((a,b)=>b.ovr-a.ovr).slice(0,11);return r.length?r.reduce((s,p)=>s+p.ovr,0)/r.length:70};
+    if(typeof renderOvr==='function')renderOvr=function(){
+      ['home','away'].forEach(s=>{
+        const el=$('ovr-'+s),t=teamOf($('sel-'+s).value);if(!el)return;
+        if(!t){el.innerHTML='';return}
+        const ps=players.filter(p=>p.teamId===t.id).map(boost),avg=ps.length?ps.reduce((a,p)=>a+p.ovr,0)/ps.length:0;
+        el.innerHTML=`<img src="${esc(t.logo)}" onerror="this.src='${PH}'" alt=""><div style="min-width:0;flex:1"><b style="font:700 1rem var(--fs);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</b><small style="color:var(--muted);font-size:.7rem">${ps.length} atleta(s)</small></div><div class="ov">${avg?avg.toFixed(1):'--'}<small>OVR médio</small></div>`;
+      });
+    };
+
+    /* card dourado TOTW */
+    const _fc=futCard;
+    futCard=function(p,o){
+      o=o||{};
+      if(!is(p.id))return _fc(p,o);
+      const t=teamOf(p.teamId),ov=Math.min(99,p.ovr+3);
+      const rows=Array.from({length:18},()=>'<div class="twrow">'+'<span>TOTW</span>'.repeat(16)+'</div>').join('');
+      return `<div class="fw"><div class="fut totw ${o.click?'click':''}" ${o.click?`onclick="${o.click}"`:''}><div class="twclip"><div class="twbg">${rows}</div></div>
+        <div class="ovr">${ov}</div><div class="pos">${esc(p.pos)}</div>
+        <img class="club" src="${esc(t?t.logo:PH)}" alt="" onerror="this.src='${PH}'">
+        <img class="ph" src="${esc(p.photo||PH)}" alt="" onerror="this.src='${PH}'">
+        <div class="nm">${esc(p.name)}</div><div class="cn">${esc(t?t.name:'Sem clube')}</div>${o.actions||''}</div>
+        <div class="totwlbl">Jogador da Semana</div></div>`;
+    };
+
+    /* aba */
+    $('tab-logs').insertAdjacentHTML('beforebegin',`<section id="tab-totw" class="tab"><h2 class="t">⭐ Seleção da Semana</h2>
+      <div class="row" style="justify-content:space-between;margin:.4rem 0 1.2rem"><div id="tw-info" style="color:var(--muted)"></div>
+      <div id="tw-admin" class="row"><button class="btn" onclick="openTotwPick()">⭐ Selecionar Atletas da Semana</button><button class="btn dng sm" onclick="twClear()">Encerrar seleção</button></div></div>
+      <div id="tw-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1.2rem;justify-items:center"></div></section>`);
+    $('nav-logs').insertAdjacentHTML('beforebegin','<button class="nav-btn" data-tab="totw">Seleção da Semana</button>');
+    document.querySelector('.nav-btn[data-tab="totw"]').onclick=()=>{goTab('totw');twRender()};
+
+    window.twRender=function(){
+      const L=act()?TW.ids.map(id=>players.find(p=>p.id===id)).filter(Boolean).sort(byPos):[];
+      const d=Math.max(1,Math.ceil((TW.start+WEEK-Date.now())/864e5));
+      $('tw-info').textContent=L.length?`${L.length} atleta(s) • +3 de overall • vale até ${new Date(TW.start+WEEK).toLocaleDateString('pt-BR')} (${d} dia(s))`:'Nenhuma seleção ativa. Os efeitos duram 1 semana, a partir da escolha do MingauCoach.';
+      $('tw-grid').innerHTML=L.length?L.map(p=>futCard(p,{})).join(''):'<p style="color:var(--muted);grid-column:1/-1">Ainda não há Seleção da Semana.</p>';
+    };
+    const refreshCards=()=>{renderPlayers();if(typeof renderOvr==='function')renderOvr();twRender()};
+    const save=()=>{
+      TW.upd=Date.now();
+      try{localStorage.setItem('stars_totw',JSON.stringify(TW));localStorage.setItem('stars_ts',Date.now())}catch(e){}
+      twSync();refreshCards();
+    };
+
+    /* seleção (somente admin) */
+    let SEL=new Set();
+    document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="m-totw"><div class="mcard" style="max-width:720px;max-height:92vh;overflow:auto">
+      <h2 class="t">⭐ Atletas da Semana</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin:.3rem 0 .8rem">Escolha até 30 atletas. Eles ganham +3 de overall e o card TOTW por 7 dias.</p>
+      <div class="row" style="gap:.5rem"><input id="tp-q" class="fc" style="flex:2" placeholder="🔍 Buscar..." oninput="twPickDraw()"><select id="tp-club" class="fc" style="flex:1" onchange="twPickDraw()"></select></div>
+      <p style="margin:.6rem 0"><b id="tp-n">0/30</b></p><div id="tp-list" class="chips"></div>
+      <div class="row" style="margin-top:.9rem"><button class="btn" onclick="twPickSave()">Salvar seleção</button><button class="btn sec" onclick="$('m-totw').classList.remove('on')">Cancelar</button></div></div></div>`);
+    window.openTotwPick=function(){
+      if(!isAdmin())return toast('Apenas o MingauCoach pode definir a Seleção da Semana.');
+      SEL=new Set(act()?TW.ids:[]);
+      $('tp-q').value='';
+      $('tp-club').innerHTML='<option value="">Todos os clubes</option>'+[...teams].sort((a,b)=>a.name.localeCompare(b.name,'pt')).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+      twPickDraw();$('m-totw').classList.add('on');
+    };
+    window.twPickDraw=function(){
+      const q=$('tp-q').value.trim().toLowerCase(),c=$('tp-club').value;
+      $('tp-n').textContent=SEL.size+'/30';
+      $('tp-list').innerHTML=players.filter(p=>(!q||p.name.toLowerCase().includes(q))&&(!c||p.teamId===c)).sort(byPos).map(p=>`<button type="button" class="chip ${SEL.has(p.id)?'on':''}" onclick="twTog('${p.id}')"><img class="cph" src="${esc(p.photo||PH)}" alt="" onerror="this.src='${PH}'">${esc(p.pos)} • ${esc(p.name)} (${p.ovr}) • ${esc((teamOf(p.teamId)||{code:'—'}).code)}</button>`).join('')||'<span style="color:var(--muted)">Nenhum atleta encontrado.</span>';
+    };
+    window.twTog=function(id){
+      if(SEL.has(id))SEL.delete(id);else{if(SEL.size>=30)return toast('Máximo de 30 atletas na Seleção da Semana.');SEL.add(id)}
+      twPickDraw();
+    };
+    window.twPickSave=function(){
+      if(!isAdmin())return;
+      const ids=[...SEL],same=act()&&ids.length===TW.ids.length&&ids.every(i=>TW.ids.includes(i));
+      TW={ids,start:same?TW.start:Date.now(),upd:Date.now()};
+      log('Definiu a Seleção da Semana ('+ids.length+' atletas)');
+      $('m-totw').classList.remove('on');save();
+    };
+    window.twClear=function(){
+      if(!isAdmin())return toast('Apenas o MingauCoach pode encerrar a seleção.');
+      askConfirm('Encerrar a Seleção da Semana agora?',()=>{TW={ids:[],start:0,upd:Date.now()};log('Encerrou a Seleção da Semana');save()});
+    };
+
+    /* nuvem: a seleção é igual em todos os aparelhos (quem manda é o MingauCoach) */
+    async function twSync(){
+      if(!cloudOn())return;
+      try{
+        const u=cloudUrl().replace(/\.json$/,'/totw_v1.json');
+        const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);
+        const c=(await r.json())||{};
+        const cids=Array.isArray(c.ids)?c.ids:Object.values(c.ids||{});
+        if((c.upd||0)>(TW.upd||0)){
+          TW={ids:cids,start:c.start||0,upd:c.upd};
+          try{localStorage.setItem('stars_totw',JSON.stringify(TW))}catch(e){}
+          refreshCards();
+        }else if((TW.upd||0)>(c.upd||0)&&isAdmin()){
+          await fetch(u,{method:'PUT',body:JSON.stringify(TW)});
+        }
+      }catch(e){}
+    }
+    window.twSync=twSync;
+    setInterval(twSync,30000);setTimeout(twSync,1800);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)twSync()});
+    /* quando a semana acaba, os cards e o bônus voltam ao normal sozinhos */
+    let last=act();
+    setInterval(()=>{if(act()!==last){last=act();refreshCards()}},60000);
+    twRender();renderPlayers();
+  });
+
+  /* =====================================================================
+     4) ABERTURA ANIMADA (estrelas + logo) → transição para a tela do treinador
+     ===================================================================== */
+  sect('intro',()=>{
+    const logo=typeof BOT_URL!=='undefined'?BOT_URL:'';
+    const ov=document.createElement('div');ov.id='intro';
+    ov.innerHTML=`<canvas id="intro-cv"></canvas><div class="in-c"><div class="in-ring"></div><img class="in-logo" src="${logo}" alt=""><div class="in-t">${'STARS SIMULATOR'.split('').map((c,i)=>`<span style="animation-delay:${1+i*.06}s">${c===' '?'&nbsp;':c}</span>`).join('')}</div><div class="in-s">FUTEBOL • TÁTICA • EMOÇÃO</div></div><div class="in-skip">TOQUE PARA PULAR</div>`;
+    document.body.appendChild(ov);
+    let raf=0,done=false;
+    const cv=document.getElementById('intro-cv'),g=cv.getContext('2d');
+    let W=cv.width=innerWidth,H=cv.height=innerHeight;
+    const R=Math.max(W,H)*.7;
+    const st=Array.from({length:260},()=>({a:Math.random()*6.283,r:Math.random()*R,s:.4+Math.random()*1.6,t:Math.random()*6}));
+    const t0=performance.now();
+    function f(now){
+      const t=(now-t0)/1000,warp=Math.max(0,1.7-t)/1.7;
+      g.fillStyle='rgba(5,7,11,'+(warp>0?.28:.5)+')';g.fillRect(0,0,W,H);
+      st.forEach(s=>{
+        const pr=s.r;s.r+=(.6+warp*22)*s.s;if(s.r>R){s.r=Math.random()*40;s.a=Math.random()*6.283}
+        const x=W/2+Math.cos(s.a)*s.r,y=H/2+Math.sin(s.a)*s.r,al=Math.min(1,s.r/(R*.4));
+        if(warp>.05){g.strokeStyle='rgba(255,255,255,'+al*.9+')';g.lineWidth=s.s;g.beginPath();g.moveTo(W/2+Math.cos(s.a)*pr,H/2+Math.sin(s.a)*pr);g.lineTo(x,y);g.stroke()}
+        else{g.fillStyle='rgba(255,255,255,'+al*(.45+.45*Math.sin(t*3+s.t))+')';g.fillRect(x,y,s.s,s.s)}
+      });
+      if(!done)raf=requestAnimationFrame(f);
+    }
+    raf=requestAnimationFrame(f);
+    const end=()=>{
+      if(done)return;done=true;ov.classList.add('out');
+      const c=document.querySelector('#m-coach .mcard');if(c)c.classList.add('enter');
+      setTimeout(()=>{cancelAnimationFrame(raf);ov.remove()},950);
+    };
+    ov.addEventListener('click',end);
+    setTimeout(end,3700);
+  });
+
+  /* =====================================================================
+     5) ESCALAÇÃO COM FOTOS (aba Times): campo e banco mostram as imagens dos atletas
+     ===================================================================== */
+  sect('escalacao',()=>{
+    renderTactics=function(){
+      const box=$('t-board');if(!box)return;
+      const f=FORMS[$('t-form').value]||FORMS['4-3-3'];
+      const roster=editTeamId?players.filter(p=>p.teamId===editTeamId):[];
+      let h='<div class="stripes"></div>';
+      if(!editTeamId)h+='<div class="hint">Salve o clube, cadastre os atletas e clique em Editar para escalar os titulares.</div>';
+      f.forEach(([lb,x,y],i)=>{
+        const cur=roster.find(p=>p.id===tactics['s'+i]);
+        const used=new Set(Object.entries(tactics).filter(([k])=>k!=='s'+i).map(([,v])=>v));
+        const opts=roster.filter(p=>(i===0?p.pos==='GK':true)&&!used.has(p.id)).sort(byPos);
+        h+=`<div class="slot dropzone ${i===0?'gk':''}" data-drop="${i}" style="left:${x}%;top:${y}%">
+          ${cur?`<img class="sph" src="${esc(cur.photo||PH)}" alt="" data-drag="${cur.id}" data-ctx="tac" onerror="this.src='${PH}'">`:''}
+          <label ${cur?`data-drag="${cur.id}" data-ctx="tac" style="cursor:grab"`:''}>${i===0?'GK':lb}${cur?' • '+esc(cur.name.split(' ').pop()):''}</label>
+          <select onchange="tactics['s${i}']=this.value;renderTactics()"><option value="">(vazio)</option>${opts.map(p=>`<option value="${p.id}" ${tactics['s'+i]===p.id?'selected':''}>${esc(p.name)} (${p.ovr})</option>`).join('')}</select></div>`;
+      });
+      box.innerHTML=h;
+      const st=new Set(Object.values(tactics)),bench=roster.filter(p=>!st.has(p.id)).sort(byPos);
+      const tb=$('t-bench');
+      tb.className='chips dropzone';tb.dataset.drop='bench';
+      tb.innerHTML=editTeamId?`<div style="width:100%;color:var(--muted);font-size:.8rem">BANCO (${bench.length}) — arraste um atleta para cá para tirá-lo do time titular</div>`+bench.map(p=>`<span class="chip on" data-drag="${p.id}" data-ctx="tac" style="cursor:grab"><img class="cph" src="${esc(p.photo||PH)}" alt="" onerror="this.src='${PH}'">${esc(p.pos)} • ${esc(p.name)} (${p.ovr})</span>`).join(''):'';
+    };
+    renderTactics();
+  });
+
+  console.log('PATCH v14 aplicado.');
+})();
+</script>
 </body>
 </html>
