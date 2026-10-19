@@ -239,6 +239,7 @@ input[type=color]{width:56px;height:38px;padding:0;border:0;background:none;curs
 .fut.totw .ph,.fut.totw .nm,.fut.totw .cn{position:relative;z-index:1}
 .fut.totw .nm{color:#2b1c00;text-shadow:0 1px 0 rgba(255,255,255,.45)}.fut.totw .cn{color:#5a3c00}
 .fut.totw .ph{filter:drop-shadow(0 4px 6px rgba(70,40,0,.5))}
+.twseq{position:absolute;top:6px;right:6px;z-index:3;background:#2b1c00;color:#ffd65c;border:1px solid #ffe38a;border-radius:10px;padding:0 .4rem;font:700 .8rem var(--fs);box-shadow:0 0 6px rgba(0,0,0,.5)}
 .totwlbl{position:absolute;left:50%;bottom:34px;transform:translateX(-50%) rotate(-5deg);white-space:nowrap;font:400 2.3rem/1 'Mrs Saint Delafield',cursive;background:linear-gradient(180deg,#fff7c9 0%,#f6d365 40%,#c9951a 75%,#8a5d00);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 6px rgba(255,205,60,.55));pointer-events:none;z-index:3}
 .goldfx{background:linear-gradient(135deg,#6b4c00,#f6d365 38%,#fff3b0 52%,#c9951a)!important;color:#2b1c00!important;border-color:#fff3b0!important;box-shadow:0 0 14px rgba(255,205,60,.6)!important}
 .goldfx label,.goldfx span,.goldfx small{color:#2b1c00!important}
@@ -480,7 +481,7 @@ body.noadm .fut.click{cursor:default}
   <h2 class="t">⭐ Seleção da Semana</h2>
   <div class="row" style="justify-content:space-between;margin:.4rem 0 1.2rem">
     <div id="tw-info" style="color:var(--muted)"></div>
-    <div id="tw-admin" class="row"><button class="btn" onclick="openTotwPick()">⭐ Selecionar Atletas da Semana</button></div>
+    <div id="tw-admin" class="row"><button class="btn" onclick="openTotwPick()">⭐ Selecionar Atletas da Semana</button><button class="btn dng sm" onclick="twResetSeq()">♻️ Resetar sequência</button></div>
   </div>
   <div id="tw-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1.2rem;justify-items:center"></div>
 </section>
@@ -530,7 +531,7 @@ body.noadm .fut.click{cursor:default}
 
 <div class="modal" id="m-totw"><div class="mcard" style="max-width:720px;max-height:92vh;overflow:auto">
   <h2 class="t">⭐ Atletas da Semana</h2>
-  <p style="color:var(--muted);font-size:.85rem;margin:.3rem 0 .8rem">Escolha de 1 a 30 atletas. Eles ganham +3 de overall e o card TOTW por 7 dias.</p>
+  <p style="color:var(--muted);font-size:.85rem;margin:.3rem 0 .8rem">Escolha de 1 a 30 atletas. Eles ganham +3 de overall e o card TOTW por 7 dias. Quem cumprir a semana inteira e for selecionado de novo ganha +1 de overall extra a cada seleção (máximo de 7 extras). A sequência vale por um trimestre ou até você resetar.</p>
   <div class="row" style="gap:.5rem"><input id="tp-q" class="fc" style="flex:2" placeholder="🔍 Buscar..." oninput="twPickDraw()"><select id="tp-club" class="fc" style="flex:1" onchange="twPickDraw()"></select></div>
   <p style="margin:.6rem 0"><b id="tp-n">0/30</b></p><div id="tp-list" class="chips"></div>
   <div class="row" style="margin-top:.9rem"><button class="btn" onclick="twSaveSel()">Salvar seleção</button><button class="btn sec" onclick="closeM('m-totw')">Cancelar</button></div>
@@ -949,31 +950,60 @@ renderAds();window.addEventListener('resize',fitSide);
 setInterval(adSync,25000);setTimeout(adSync,1500);
 
 /* ===================== SELEÇÃO DA SEMANA ===================== */
-const readTW=()=>load('stars_totw',{ids:[],start:0,upd:0});
+/* Regras: +3 de overall na semana. Quem COMPLETA os 7 dias e é selecionado de novo ganha +1 extra a cada nova seleção
+   (máx. 7 extras = +10). A sequência dura um trimestre (91 dias) ou até o MingauCoach resetar. */
+const TW_MAXEXTRA=7,TW_QUARTER=91*864e5;
+const readTW=()=>{const t=load('stars_totw',{});return{ids:Array.isArray(t.ids)?t.ids:[],start:t.start||0,upd:t.upd||0,ext:t.ext||{},hist:t.hist||{},ps:t.ps||{},cyc:t.cyc||0,cred:!!t.cred}};
 const actTW=t=>!!(t&&t.ids&&t.ids.length>0&&Date.now()-t.start<WEEK);
 const liveIds=()=>{const t=readTW();return actTW(t)?t.ids:[]};
 const isTotw=id=>liveIds().includes(id);
-const boost=p=>isTotw(p.id)?{...p,ovr:Math.min(99,p.ovr+3),totw:1}:p;
+const twExtra=id=>{const t=readTW();return actTW(t)&&t.ids.includes(id)?Math.min(TW_MAXEXTRA,t.ext[id]||0):0};
+const twBonus=id=>3+twExtra(id);
+const boost=p=>isTotw(p.id)?{...p,ovr:Math.min(99,p.ovr+twBonus(p.id)),totw:1,twx:twExtra(p.id)}:p;
+function twPersist(data){
+  data.upd=Date.now();
+  try{localStorage.setItem('stars_totw',JSON.stringify(data));localStorage.setItem('stars_ts',Date.now())}catch(e){}
+  if(cloudOn())fetch(cloudUrl().replace(/\.json$/,'/totw_v1.json'),{method:'PUT',body:JSON.stringify(data)}).catch(()=>{});
+}
+/* credita a semana cumprida e vence o trimestre */
+function twSettle(){
+  if(!isAdmin())return false;
+  const t=readTW(),now=Date.now();let ch=false;
+  if(t.ids.length&&!t.cred&&now-t.start>=WEEK){
+    t.ids.forEach(id=>{if((t.ps[id]||t.start)<=t.start+1000)t.hist[id]=Math.min(TW_MAXEXTRA,(t.hist[id]||0)+1)});
+    t.cred=true;if(!t.cyc)t.cyc=t.start;ch=true;
+  }
+  if(t.cyc&&now-t.cyc>=TW_QUARTER){t.hist={};t.ext={};t.cyc=0;ch=true;if(isAdmin())log('A sequência trimestral da Seleção da Semana foi reiniciada')}
+  if(ch)twPersist(t);
+  return ch;
+}
+function twResetSeq(){
+  if(!isAdmin())return toast('Apenas o MingauCoach pode resetar a sequência.');
+  askConfirm('Resetar a sequência da Seleção da Semana? Todos voltam a +3 e a contagem de semanas é zerada.',()=>{
+    const t=readTW();t.hist={};t.ext={};t.cyc=0;twPersist(t);log('Resetou a sequência da Seleção da Semana');toast('Sequência resetada.');refreshTW();
+  });
+}
 const twNames=()=>new Set(players.filter(p=>isTotw(p.id)).map(p=>p.name));
 function futCard(p,o){
   o=o||{};
   const t=teamOf(p.teamId),tot=isTotw(p.id);
-  const core=`<div class="ovr">${tot?Math.min(99,p.ovr+3):p.ovr}</div><div class="pos">${esc(p.pos)}</div>
+  const core=`<div class="ovr">${tot?Math.min(99,p.ovr+twBonus(p.id)):p.ovr}</div><div class="pos">${esc(p.pos)}</div>
   <img class="club" src="${esc(t?t.logo:PH)}" alt="" onerror="this.src='${PH}'">
   <img class="ph" src="${esc(p.photo||PH)}" alt="" onerror="this.src='${PH}'">
   <div class="nm">${esc(p.name)}</div><div class="cn">${esc(t?t.name:'Sem clube')}</div>${o.actions||''}`;
   if(!tot)return `<div class="fut ${o.click?'click':''}" ${o.click?`onclick="${o.click}"`:''}>${core}</div>`;
   const rows=Array.from({length:18},()=>'<div class="twrow">'+'<span>TOTW</span>'.repeat(16)+'</div>').join('');
-  return `<div class="fw"><div class="fut totw ${o.click?'click':''}" ${o.click?`onclick="${o.click}"`:''}><div class="twclip"><div class="twbg">${rows}</div></div>${core}</div><div class="totwlbl">Jogador da Semana</div></div>`;
+  return `<div class="fw"><div class="fut totw ${o.click?'click':''}" ${o.click?`onclick="${o.click}"`:''}><div class="twclip"><div class="twbg">${rows}</div></div>${twExtra(p.id)?`<div class="twseq" title="Sequência de seleções">+${twExtra(p.id)}</div>`:''}${core}</div><div class="totwlbl">Jogador da Semana</div></div>`;
 }
 function twRender(){
   const t=readTW(),act=actTW(t);
   const L=act?t.ids.map(id=>players.find(p=>p.id===id)).filter(Boolean).sort(byPos):[];
   const d=Math.max(1,Math.ceil((t.start+WEEK-Date.now())/864e5));
   const info=$('tw-info'),grid=$('tw-grid');
-  info.textContent=L.length?`${L.length} atleta(s) • +3 de overall • vale até ${new Date(t.start+WEEK).toLocaleDateString('pt-BR')} (${d} dia(s))`:'A Seleção da Semana só começa a valer quando tiver ao menos 1 atleta.';
+  const cy=t.cyc?` • sequência trimestral até ${new Date(t.cyc+TW_QUARTER).toLocaleDateString('pt-BR')}`:'';
+  info.textContent=L.length?`${L.length} atleta(s) • +3 de overall (+1 extra por semana cumprida, até +${TW_MAXEXTRA}) • vale até ${new Date(t.start+WEEK).toLocaleDateString('pt-BR')} (${d} dia(s))${cy}`:'A Seleção da Semana só começa a valer quando tiver ao menos 1 atleta.';
   const admin=isAdmin();
-  grid.innerHTML=L.length?L.map(p=>`<div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">${admin?`<button class="btn dng" style="min-width:170px;font-size:.95rem" onclick="twRemoveOne('${p.id}')">✖ Remover da semana</button>`:''}${futCard(p,{})}</div>`).join(''):'<p style="color:var(--muted);grid-column:1/-1">Nenhum atleta na Seleção da Semana.</p>';
+  grid.innerHTML=L.length?L.map(p=>`<div style="display:flex;flex-direction:column;align-items:center;gap:.6rem">${admin?`<button class="btn dng" style="min-width:170px;font-size:.95rem" onclick="twRemoveOne('${p.id}')">✖ Remover da semana</button>`:''}${futCard(p,{})}<small style="color:var(--muted)">Bônus: +${twBonus(p.id)}${twExtra(p.id)?` (sequência ${twExtra(p.id)}/${TW_MAXEXTRA})`:''} • semanas cumpridas: ${t.hist[p.id]||0}</small></div>`).join(''):'<p style="color:var(--muted);grid-column:1/-1">Nenhum atleta na Seleção da Semana.</p>';
 }
 let thOff=0;
 function renderTotwHome(){
@@ -987,11 +1017,17 @@ function renderTotwHome(){
 setInterval(()=>{if(players.filter(p=>isTotw(p.id)).length>3)thOff+=3;renderTotwHome()},6000);
 function refreshTW(){renderPlayers();renderOvr();twRender();renderTotwHome();renderTactics();stats()}
 function saveTW(ids){
-  const cur=readTW();
-  const start=ids.length===0?0:(actTW(cur)?cur.start:Date.now());
-  const data={ids,start,upd:Date.now()};
-  try{localStorage.setItem('stars_totw',JSON.stringify(data));localStorage.setItem('stars_ts',Date.now())}catch(e){}
-  if(cloudOn())fetch(cloudUrl().replace(/\.json$/,'/totw_v1.json'),{method:'PUT',body:JSON.stringify(data)}).catch(()=>{});
+  twSettle();
+  const cur=readTW(),act=actTW(cur),now=Date.now();
+  const start=ids.length===0?0:(act?cur.start:now);
+  const keep=act?cur.ids:[];
+  const ext={},ps={},hist={...cur.hist};
+  ids.forEach(id=>{
+    if(keep.includes(id)){ext[id]=cur.ext[id]||0;ps[id]=cur.ps[id]||cur.start}
+    else{ext[id]=Math.min(TW_MAXEXTRA,hist[id]||0);ps[id]=now}   // nova seleção: +1 extra por semana cumprida antes
+  });
+  let cyc=cur.cyc;if(ids.length&&!cyc)cyc=start;
+  twPersist({ids,start,ext,ps,hist,cyc,cred:act?cur.cred:false});
   refreshTW();
 }
 let SELV=new Set();
@@ -1032,12 +1068,13 @@ async function twSync(){
     const cids=Array.isArray(c.ids)?c.ids:Object.values(c.ids||{});
     const TW=readTW();
     if((c.upd||0)>(TW.upd||0)){
-      try{localStorage.setItem('stars_totw',JSON.stringify({ids:cids,start:c.start||0,upd:c.upd}))}catch(e){}
+      try{localStorage.setItem('stars_totw',JSON.stringify({ids:cids,start:c.start||0,upd:c.upd,ext:c.ext||{},hist:c.hist||{},ps:c.ps||{},cyc:c.cyc||0,cred:!!c.cred}))}catch(e){}
       refreshTW();
     }else if((TW.upd||0)>(c.upd||0)&&isAdmin())await fetch(u,{method:'PUT',body:JSON.stringify(TW)});
   }catch(e){}
 }
 setInterval(twSync,30000);setTimeout(twSync,1800);
+twSettle();setInterval(()=>{if(twSettle())refreshTW()},60000);
 let lastAct=actTW(readTW());
 setInterval(()=>{const a=actTW(readTW());if(a!==lastAct){lastAct=a;refreshTW()}},60000);
 
@@ -1321,6 +1358,13 @@ function newMatch(){
   if(M.h&&M.a){paint();layoutDots()}
   buildTac();btns();renderRoundBox();renderStats();renderOvr();renderStadium();
 }
+/* formação “viva”: a CPU pode mudar a função de uma posição durante o jogo */
+function curF(s){
+  const t=s==='home'?M.h:M.a,base=FORMS[t.formation]||FORMS['4-3-3'];
+  M.fm=M.fm||{};
+  if(!M.fm[s]||M.fm[s].tid!==t.id||M.fm[s].F.length!==base.length)M.fm[s]={tid:t.id,F:base.map(x=>x.slice()),ch:0};
+  return M.fm[s].F;
+}
 function layoutDots(){
   let h='';M.dots={home:[],away:[]};
   [['home',M.h],['away',M.a]].forEach(([s,t])=>{if(!t)return;
@@ -1333,7 +1377,7 @@ function moveDots(bx,by){
   const rest=M.min<1&&M.half===1&&!M.et;
   ['home','away'].forEach(s=>{
     const t=s==='home'?M.h:M.a;if(!t)return;
-    const F=FORMS[t.formation]||FORMS['4-3-3'],att=M.attack===s,pb=s==='home'?bx/100:1-bx/100;
+    const F=curF(s),att=M.attack===s,pb=s==='home'?bx/100:1-bx/100;
     const mapX=dE=>s==='home'?4+dE*88:96-dE*88;
     let chaser=-1,best=1e9;
     if(!rest)F.forEach(([lb,lat,y],i)=>{
@@ -1589,26 +1633,96 @@ function cpuPick(l,out){
   const pool=l.bench.filter(p=>out.pos==='GK'?p.pos==='GK':g.includes(p.pos));
   return pool.length?wpick(pool,p=>Math.pow(p.ovr/70,3)+.3):null;
 }
+/* ---------- Substituições da CPU: leem o jogo (placar, minuto, cartões, cansaço) ---------- */
+const DEPTH={GK:0,CB:1,LB:1.3,RB:1.3,LWB:1.9,RWB:1.9,CDM:2,CM:3,LM:3.2,RM:3.2,CAM:4,LW:4.6,RW:4.6,CF:5,ST:5};
+const SIDEOF=p=>/^L/.test(p)?'L':/^R/.test(p)?'R':'C';
+function cpuPers(side){
+  M.cp=M.cp||{};
+  if(!M.cp[side])M.cp[side]={risk:rnd(.15,.95),fresh:rnd(.6,1.4),early:rnd(0,1)};
+  return M.cp[side];
+}
+function cpuSituation(side){
+  const my=side==='home'?M.sh:M.sa,th=side==='home'?M.sa:M.sh,lead=my-th,min=M.min;
+  const l=side==='home'?M.lh:M.la,ol=side==='home'?M.la:M.lh,men=l.on.length-ol.on.length;
+  if(men<0&&min>=30)return 'cover';
+  if(lead>0&&min>=58)return 'protect';
+  if(lead<0&&min>=48)return 'chase';
+  if(lead===0&&min>=70&&Math.random()<.55)return 'push';
+  return 'fresh';
+}
+function cpuPairW(mode,out,inn,P){
+  const d0=DEPTH[out.pos]??3,d1=DEPTH[inn.pos]??3,dd=d1-d0;
+  let w=1;
+  if(mode==='protect'){            // atacante → meia mais recuado, ponta → lateral/marcador, meia → volante
+    w=dd<=-.4?(dd>=-2.4?3.2:1.6):(dd>-.4&&dd<.4?.9:.12);
+    if(out.pos==='ST'||out.pos==='CF'||out.pos==='LW'||out.pos==='RW'||out.pos==='CAM')w*=1.8;
+  }else if(mode==='chase'){        // volante/zagueiro/lateral → mais ofensivo
+    w=dd>=.4?(dd<=2.6?3.2:2.2*P.risk+.4):(dd>-.4?.9:.1);
+    if(out.pos==='CDM'||out.pos==='CM'||out.pos==='LB'||out.pos==='RB'||out.pos==='LWB'||out.pos==='RWB')w*=1.6;
+    if(out.pos==='CB')w*=(M.min>=75?(.6+P.risk):.25);
+  }else if(mode==='cover'){        // time com um a menos: fecha a casa
+    w=dd<=-.4?3:dd<.4?1:.2;
+    if(DEPTH[out.pos]>=4)w*=1.8;
+  }else if(mode==='push'){
+    w=dd>=.4?2.6:dd>-.4?1.2:.3;
+  }else{                            // troca de rotina: mesma função (ou muito próxima)
+    w=Math.abs(dd)<.4?3:Math.abs(dd)<1.3?1.6:.35;
+  }
+  if(SIDEOF(out.pos)===SIDEOF(inn.pos))w*=1.5;else if(SIDEOF(out.pos)!=='C'&&SIDEOF(inn.pos)!=='C')w*=.5;
+  return w*Math.pow(inn.ovr/70,2);
+}
 function cpuMaybeSub(side){
-  if(M.ctl[side]||M.subs[side]<=0||M.pauses[side]<=0||M.min<55||M.inExtra||M.et)return;
-  if(M.min-M.lcs[side]<3)return;
-  const st=M.st[side],fat=Math.max(0,M.min-55)/40;
-  const chance=.03+(M.min-55)*.003+(st.rc>0?.08:0)+(st.yc>=2?.02:0)+fat*.04;
+  if(M.ctl[side]||M.subs[side]<=0||M.inExtra||M.et||M.min<46)return;
+  if(M.min-M.lcs[side]<4)return;
+  const P=cpuPers(side),st=M.st[side],mode=cpuSituation(side);
+  const used=5-M.subs[side],fat=Math.max(0,M.min-50)/40;
+  let chance=(M.min<56?.012:M.min<66?.04:M.min<78?.07:.06)*(.6+P.fresh*.5);
+  if(mode==='chase'||mode==='protect'||mode==='cover')chance*=1.5;
+  if(st.rc>0)chance+=.05;
+  if(used===0&&M.min>=68)chance+=.05;       // ainda não mexeu: hora de mexer
+  if(M.min>=84&&used>=3)chance*=.5;
+  chance*=.55+M.subs[side]/6;
   if(Math.random()>chance)return;
-  const l=side==='home'?M.lh:M.la;
-  const cands=l.on.filter(p=>p.pos!=='GK'&&cpuPick(l,p));
+  const l=side==='home'?M.lh:M.la,team=side==='home'?M.h:M.a;
+  M.inAt=M.inAt||{};
+  const outs=l.on.filter(p=>p.pos!=='GK'&&!(p.id in M.inAt&&M.min-M.inAt[p.id]<40));
+  const ins=l.bench.filter(p=>p.pos!=='GK');
+  if(!outs.length||!ins.length)return;
+  const cnt=(arr,pos)=>arr.filter(x=>pos.includes(x.pos)).length;
+  const cands=[];
+  outs.forEach(o=>{
+    const ow=.5+fat*1.2*P.fresh+Math.max(0,(80-o.ovr)/35)+(M.cards[o.id]?.7:0)+rnd(0,.7);
+    ins.forEach(i=>{
+      const after=l.on.map(x=>x===o?i:x);
+      if(cnt(after,G.def)<(mode==='chase'&&M.min>=80?2:3)&&cnt(after,G.def)<cnt(l.on,G.def))return;
+      if(cnt(after,G.fwd)<1&&mode!=='cover')return;
+      cands.push({o,i,w:ow*cpuPairW(mode,o,i,P)});
+    });
+  });
   if(!cands.length)return;
-  const score=p=>p.ovr-12*fat-6*(M.cards[p.id]||0);
-  const out=cands.sort((a,b)=>score(a)-score(b))[0],inn=cpuPick(l,out);
-  if(!inn)return;
-  M.lcs[side]=M.min;M.pauses[side]--;M.hs.pauses++;
-  tick(`⏱ ${(side==='home'?M.h:M.a).name} faz parada técnica e troca ${out.name} (${clock()})`);
+  const c=wpick(cands,x=>x.w),out=c.o,inn=c.i;
+  const why={protect:'para proteger o resultado',chase:'em busca do gol',cover:'para se ajustar com um a menos',push:'para tentar a vitória',fresh:'por desgaste físico'}[mode];
+  M.lcs[side]=M.min;
+  // a posição em campo muda de função quando o reserva é de outro setor (ex.: atacante sai, meia entra)
+  if(DEPTH[out.pos]!==DEPTH[inn.pos]||SIDEOF(out.pos)!==SIDEOF(inn.pos)){
+    const F=curF(side),vis=[...Array(11).keys()].filter(j=>!M.hid[side].has(j));let slot=vis.find(j=>F[j][0]===out.pos);
+    if(slot==null)slot=vis[Math.min(l.on.indexOf(out),vis.length-1)];
+    if(slot!=null&&F[slot]&&F[slot][0]!=='GK'){
+      const sect=G.fwd.includes(inn.pos)?'fwd':G.mid.includes(inn.pos)?'mid':'def';
+      const same=F.filter((f,j)=>j!==slot&&f[0]!=='GK'&&G[sect].includes(f[0])&&!M.hid[side].has(j));
+      const y=same.length?Math.round(same.reduce((a,f)=>a+f[2],0)/same.length):{fwd:14,mid:39,def:63}[sect];
+      const lat=SIDEOF(inn.pos)==='L'?Math.min(F[slot][1],24):SIDEOF(inn.pos)==='R'?Math.max(F[slot][1],76):(SIDEOF(F[slot][0])==='C'?F[slot][1]:50);
+      F[slot]=[inn.pos,lat,y];
+    }
+  }
+  tick(`🔁 ${team.name} mexe ${why}: ${out.pos} ${out.name} dá lugar a ${inn.pos} ${inn.name} (${clock()})`);
   swapPlayer(side,out,inn,false);
 }
 function swapPlayer(side,out,inn,keep){
   const l=side==='home'?M.lh:M.la,team=side==='home'?M.h:M.a;
   const oi=l.on.indexOf(out);if(oi<0)return;
   l.on[oi]=inn;const bi=l.bench.indexOf(inn);if(bi>=0)l.bench.splice(bi,1);
+  (M.inAt=M.inAt||{})[inn.id]=M.min;(M.outAt=M.outAt||{})[out.id]=M.min;
   M.subs[side]--;M.hs.subs++;
   tick(`🔄 ${team.name}: sai ${out.name}, entra ${inn.name} (${clock()})`);
   Q(banner({word:'SUBSTITUIÇÃO',team,side,pair:[{photo:out.photo,name:out.name,label:'SAI',cls:'out'},{photo:inn.photo,name:inn.name,label:'ENTRA',cls:'in'}],sub:`${team.name.toUpperCase()} • ${clock()}`,ms:2500,keep}));
@@ -1847,10 +1961,42 @@ function applyAdvice(side){
   tick(`🧠 ${(side==='home'?M.h:M.a).name} adota a sugestão do auxiliar (${v.why}): ${ATK[v.atk].n} • ${DEF[v.def].n} (${clock()})`);
   buildTac();
 }
+/* ---------- Estilo de jogo da CPU: escolhe entre várias respostas, conforme o jogo e a “personalidade” de cada time ---------- */
+function cpuAdvise(side){
+  const my=side==='home'?M.sh:M.sa,th=side==='home'?M.sa:M.sh,lead=my-th,min=M.min,P=cpuPers(side);
+  const l=side==='home'?M.lh:M.la,ol=side==='home'?M.la:M.lh,men=l.on.length-ol.on.length;
+  const tot=M.st.home.poss+M.st.away.poss,poss=tot?M.st[side].poss/tot:.5;
+  const yel=l.on.filter(p=>(M.cards[p.id]||0)>=1).length,cur=M.tac[side],team=side==='home'?M.h:M.a;
+  const bA=team.atk||'eq',bD=team.def||'eq',opts=[];
+  const add=(a,d,w,why)=>opts.push({a,d,w,why});
+  const r=P.risk;
+  if(men<=-1){add('counter','recuar',3,'um jogador a menos');add('counter','eq',2,'um jogador a menos');add('long','recuar',1,'um jogador a menos');add('eq','recuar',1.2,'um jogador a menos')}
+  else if(men>=1){add('posse','eq',2,'superioridade numérica');add('pontas','linha',1.5+r,'superioridade numérica');add('posse','press',1+r,'superioridade numérica');add('pontas','eq',1.5,'superioridade numérica')}
+  if(lead<0){
+    if(min>=70){add('long','linha',1+r*2,`perdendo por ${-lead} no fim`);add('pontas','linha',2.5,`perdendo por ${-lead} no fim`);add('pontas','press',1+r*2,`perdendo por ${-lead} no fim`);add('posse','press',1.5,`perdendo por ${-lead} no fim`);if(lead===-1)add('counter','linha',.8,'busca o empate no contra-ataque')}
+    else if(min>=30){add('pontas','eq',2,'precisa buscar o resultado');add('posse','eq',2,'precisa buscar o resultado');add('posse','press',1+r,'precisa buscar o resultado');add('pontas','linha',1+r,'precisa buscar o resultado')}
+  }else if(lead>0){
+    if(min>=70){add('counter','recuar',3,'segura o resultado');add('posse','recuar',2.2,'segura o resultado');add('eq','recuar',1.3,'segura o resultado');add('long','recuar',1,'segura o resultado')}
+    else if(min>=30){add('posse','eq',2,'administra a vantagem');add('counter','eq',1.5+(1-r),'administra a vantagem');add(bA,bD,.8,'volta ao plano de jogo')}
+    if(lead>=2)add('posse','eq',2,'controla o jogo com folga')
+  }else if(min>=30){
+    add('pontas','eq',1.5,'jogo parado: abre pelos lados');add('posse','press',1+r,'tenta apertar a saída de bola');add('counter','linha',.6+(1-r),'tenta surpreender');add('long','eq',.8,'muda a forma de chegar ao ataque');add(bA,bD,.8,'volta ao plano de jogo');
+  }
+  if(tot>25&&poss<.4)add('counter','recuar',1.8,'adversário domina a posse');
+  if(tot>25&&poss>.62&&lead<=0)add('pontas','linha',1.6,'domina mas não vence');
+  if(min>=70&&cur.def==='press')add(cur.atk,'recuar',2,'cansaço: recua a marcação');
+  if(min>=70&&cur.def==='indiv')add(cur.atk,'eq',1.2,'cansaço na marcação');
+  let list=opts.filter(o=>!(o.a===cur.atk&&o.d===cur.def));
+  if(yel>=3)list=list.map(o=>({...o,d:(o.d==='press'||o.d==='indiv')?'eq':o.d,why:o.why+'; muitos amarelos'})).filter(o=>!(o.a===cur.atk&&o.d===cur.def));
+  if(!list.length)return null;
+  const c=wpick(list,o=>o.w);
+  return{atk:c.a,def:c.d,why:c.why};
+}
 function cpuTac(){
   ['home','away'].forEach(s=>{
-    if(M.ctl[s]||M.min<15||M.min-M.tacT[s]<12||Math.random()>.5)return;
-    const v=advise(s);if(!v)return;
+    const P=cpuPers(s);
+    if(M.ctl[s]||M.min<12||M.min-M.tacT[s]<(9+Math.round(P.risk*6)+Math.floor(rnd(0,5)))||Math.random()>.45)return;
+    const v=cpuAdvise(s);if(!v)return;
     M.tac[s].atk=v.atk;M.tac[s].def=v.def;M.tacT[s]=M.min;
     tick(`🧠 ${(s==='home'?M.h:M.a).name} ajusta a tática (${v.why}): ${ATK[v.atk].n} • ${DEF[v.def].n} (${clock()})`);
   });
