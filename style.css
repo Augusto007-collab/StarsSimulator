@@ -57,9 +57,9 @@ h2.t{font-size:2.4rem}h3.t{font-size:1.7rem;margin-bottom:.8rem}
 /* Placas */
 .adb{position:absolute;background:#0b0f16!important;border:0!important;box-shadow:0 1px 4px rgba(0,0,0,.6)!important;overflow:hidden!important;z-index:1!important}
 .adb.t{left:-2%!important;right:-2%!important;top:-27px!important;height:26px!important;transform-origin:bottom!important;transform:rotateX(-90deg)!important}
-.adb.l,.adb.r{top:-2%!important;bottom:-2%!important;width:26px!important;transform:none!important}
-.adb.l{left:-28px!important;right:auto!important}
-.adb.r{right:-28px!important;left:auto!important}
+.adb.l,.adb.r{top:-2%!important;bottom:-2%!important;width:26px!important}
+.adb.l{left:-27px!important;right:auto!important;transform-origin:right center!important;transform:rotateY(55deg)!important}
+.adb.r{right:-27px!important;left:auto!important;transform-origin:left center!important;transform:rotateY(-55deg)!important}
 .adt{display:flex;gap:2.2rem;white-space:nowrap;font:700 .8rem var(--fs);letter-spacing:2px;color:#fff;line-height:26px;animation:adx 16s linear infinite;width:max-content}
 .adt span{padding:0 .4rem;text-shadow:0 0 6px #fff}
 .adb.l .adt,.adb.r .adt{writing-mode:vertical-rl;line-height:26px;animation:ady 16s linear infinite;width:auto}
